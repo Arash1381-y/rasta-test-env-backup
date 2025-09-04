@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>مبدل متن و عدد</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;500;800&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+      html, body { background: transparent !important; font-family: "Vazirmatn", sans-serif; }
+      *, *::before, *::after { box-sizing: border-box; }
+
+      .rotate { transition: transform 0.5s ease; }
+      .rotated { transform: rotate(180deg); }
+      @media (prefers-reduced-motion: reduce) { .rotate { transition: none; } }
+
+      .io-text { font-size: clamp(13px, 4.5vw, 20px); line-height: 1.4; }
+      .rect-text { font-size: clamp(16px, 5vw, 22px); }
+    </style>
+  </head>
+
+  <body class="p-4 overflow-x-hidden">
+    <main id="wrap" class="w-full max-w-5xl mx-auto">
+      <h1 id="functionTypeLabel" class="text-center text-2xl md:text-3xl font-extrabold mb-6 text-gray-800">
+        تبدیل متن به عدد
+      </h1>
+
+      <section>
+        <div class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
+          <!-- Input -->
+          <div class="min-w-0">
+            <label for="inputBox" class="sr-only">ورودی</label>
+            <input
+              id="inputBox"
+              type="text"
+              class="io-text w-full min-w-0 p-3 text-gray-800 bg-white border border-gray-300 focus:outline-none focus:ring-4 focus:ring-rose-300 rounded-2xl"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="متن فارسی وارد کنید"
+            />
+          </div>
+
+          <!-- Converter -->
+          <div
+            id="converterRect"
+            class="rotate w-24 h-12 md:w-28 md:h-14 bg-rose-500 hover:bg-rose-700 text-white font-bold rounded-2xl flex items-center justify-center rect-text select-none mx-auto md:mx-0 my-2 md:my-0"
+          >
+            تبدیل
+          </div>
+
+          <!-- Output -->
+          <div class="min-w-0">
+            <label for="outputBox" class="sr-only">خروجی</label>
+            <div
+              id="outputBox"
+              dir="ltr"
+              class="io-text w-full min-w-0 p-3 bg-gray-50 border border-gray-300 rounded-2xl flex flex-wrap gap-2 min-h-[var(--ioh)]"
+            ></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="flex justify-center mt-6">
+        <button
+          id="reverseBtn"
+          type="button"
+          class="h-12 w-12 grid place-items-center rounded-full border border-rose-300 bg-white text-rose-600 hover:bg-rose-50 focus:outline-none focus:ring-4 focus:ring-rose-200"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            class="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <g transform="scale(-1,1) translate(-24,0)">
+              <path d="M4 7h11" />
+              <path d="M15 4l3 3-3 3" />
+              <path d="M20 17H9" />
+              <path d="M9 20l-3-3 3-3" />
+            </g>
+          </svg>
+        </button>
+      </div>
+    </main>
+
+    <script>
+      const inputBox = document.getElementById("inputBox");
+      const outputBox = document.getElementById("outputBox");
+      const reverseBtn = document.getElementById("reverseBtn");
+      const converterRect = document.getElementById("converterRect");
+      const funcLabel = document.getElementById("functionTypeLabel");
+
+      let textToNum = true;
+
+      converterRect.addEventListener("click", convert);
+
+      reverseBtn.addEventListener("click", () => {
+        textToNum = !textToNum;
+        inputBox.value = "";
+        outputBox.textContent = "";
+        converterRect.classList.toggle("rotated");
+        setTimeout(() => converterRect.classList.toggle("rotated"), 520);
+        inputBox.focus();
+        renderMode();
+      });
+
+      function renderMode() {
+        funcLabel.textContent = textToNum ? "تبدیل متن به عدد" : "تبدیل عدد به متن";
+        outputBox.setAttribute("dir", textToNum ? "ltr" : "rtl");
+        outputBox.classList.toggle("justify-start", textToNum);
+        outputBox.classList.toggle("justify-end", !textToNum);
+        inputBox.setAttribute("placeholder", textToNum ? "متن فارسی وارد کنید" : "عدد وارد کنید");
+      }
+
+      const ALPHABET = ["ا","ب","پ","ت","ث","ج","چ","ح","خ","د","ذ","ر","ز","ژ","س","ش","ص","ض","ط","ظ","ع","غ","ف","ق","ک","گ","ل","م","ن","و","ه","ی"]; // 1..33
+      const DIGITS_ASCII = "0123456789";
+      const DIGITS_PERSIAN = "۰۱۲۳۴۵۶۷۸۹";
+      const DIGITS_ARABIC_INDIC = "٠١٢٣٤٥٦٧٨٩";
+
+      function toPersianDigits(str) {
+        return str.replace(/\d/g, d => DIGITS_PERSIAN[d]);
+      }
+      function persianToAsciiDigits(str) {
+        return str.replace(/[۰-۹]/g, d => DIGITS_ASCII[DIGITS_PERSIAN.indexOf(d)]);
+      }
+
+      function normalizePersianLetters(s) {
+        return s
+          .replace(/ي/g, "ی")
+          .replace(/ك/g, "ک")
+          .replace(/[أإٱ]/g, "ا")
+          .replace(/ة|ۀ/g, "ه")
+          .replace(/ؤ/g, "و")
+          .replace(/ئ/g, "ی")
+          .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, "");
+      }
+
+      function sanitizeTextInput(s) {
+        const norm = normalizePersianLetters(s);
+        const allowed = new Set([...ALPHABET, " ", "آ"]);
+        return Array.from(norm)
+          .filter(ch => allowed.has(ch))
+          .join("")
+          .replace(/\s+/g, " ")
+          .trimStart();
+      }
+
+      function sanitizeNumberInput(s) {
+        const toFa = s
+          .replace(/[0-9]/g, d => DIGITS_PERSIAN[d])
+          .replace(/[٠-٩]/g, d => DIGITS_PERSIAN[DIGITS_ARABIC_INDIC.indexOf(d)]);
+        return toFa
+          .replace(/[^۰۱۲۳۴۵۶۷۸۹]/g, ""); // allow only Persian digits
+      }
+
+      function convert() {
+        let value = inputBox.value;
+
+        if (textToNum) {
+          value = sanitizeTextInput(value);
+          if (value !== inputBox.value) inputBox.value = value;
+          if (!value.trim()) { outputBox.textContent = ""; return; }
+
+          const codes = [];
+          for (const ch of value) {
+            if (ch === " ") { codes.push(toPersianDigits("00")); }
+
+            if (codes.length === 0) {
+              if (ch === "آ") {
+                codes.push(toPersianDigits(String(1)));
+              } else {
+                const idx = ALPHABET.indexOf(ch);
+                if (idx === -1) continue;
+                codes.push(toPersianDigits(String(idx + 1)));
+              }
+            } else {
+              if (ch === "آ") {
+                codes.push(toPersianDigits("01"));
+              } else {
+                const idx = ALPHABET.indexOf(ch);
+                if (idx === -1) continue;
+                const two = String(idx + 1).padStart(2, "0");
+                codes.push(toPersianDigits(two));
+              }
+            }
+          }
+
+          outputBox.innerHTML = codes
+            .map(c => `<span class="inline-flex items-center border border-black rounded px-1 py-0.5 leading-none tabular-nums">${c}</span>`)
+            .join("");
+          return;
+        }
+
+        value = sanitizeNumberInput(value);
+        if (value !== inputBox.value) inputBox.value = value;
+        if (!value.trim()) { outputBox.textContent = ""; return; }
+
+        const toLetter = chunk => {
+          const n = Number.parseInt(persianToAsciiDigits(chunk), 10);
+          if (!Number.isFinite(n) || n < 0 || n > ALPHABET.length) return "";
+          return n === 0 ? " " : ALPHABET[n - 1];
+        };
+
+        let letters = "";
+        let i = 0;
+
+        if (value.length % 2 !== 0) {
+          letters += toLetter(value.slice(0, 1));
+          i = 1;
+        }
+
+        for (; i < value.length; i += 2) {
+          letters += toLetter(value.slice(i, i + 2));
+        }
+
+        outputBox.textContent = letters;
+      }
+
+      function onlyPersian() {
+        if (textToNum) {
+          inputBox.value = sanitizeTextInput(inputBox.value);
+        } else {
+          value = sanitizeNumberInput(inputBox.value);
+          if (value !== inputBox.value) inputBox.value = value;
+        }
+      }
+
+      inputBox.addEventListener("input", onlyPersian);
+      outputBox.style.minHeight = `${inputBox.offsetHeight}px`;
+    </script>
+  </body>
+</html>
