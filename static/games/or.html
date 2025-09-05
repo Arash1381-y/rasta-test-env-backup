@@ -94,15 +94,6 @@
 </head>
 <body>
   <div class="wrap">
-    <!-- Circuit -->
-    <div class="box">
-      <div class="card">
-        <div class="card-head">مدار تعاملی</div>
-        <div class="card-body">
-          <div id="circuit"></div>
-        </div>
-      </div>
-    </div>
 
 
     <!-- Truth table -->
@@ -114,6 +105,17 @@
         </div>
       </div>
     </div>
+
+    <!-- Circuit -->
+    <div class="box">
+      <div class="card">
+        <div class="card-head">مدار تعاملی</div>
+        <div class="card-body">
+          <div id="circuit"></div>
+        </div>
+      </div>
+    </div>
+
 
     <!-- Schematic -->
     <div class="box">
@@ -131,105 +133,108 @@
   </div>
 
 <script>
-/* ---------- Shared state ---------- */
+
+/* OR truth table: inputs locked; outputs toggle; results live */
 let table = [
-  { input1: 0, input2: 0, output: 0 },
-  { input1: 0, input2: 1, output: 0 },
-  { input1: 1, input2: 0, output: 0 },
-  { input1: 1, input2: 1, output: 0 }
+  { i1: 0, i2: 0, o: 0 },
+  { i1: 0, i2: 1, o: 0 },
+  { i1: 1, i2: 0, o: 0 },
+  { i1: 1, i2: 1, o: 0 }
 ];
 let results = [false, false, false, false];
-let checkButtonColor;
 
-/* ---------- Truth table (p5) ---------- */
 (function setupTruthTable(){
   const sketch = function(p){
+    const W = 320, H = 450;
+    const startY = 60;
+    const rowGap = 60;
+    const cellW = 40, cellH = 40;
+    const c1 = 60;                // input1 center
+    const c2 = c1 + 70;           // input2 center
+    const c3 = c2 + 70;           // output center
+    const c4 = c3 + 70;           // result center
+
     p.setup = function(){
-      p.createCanvas(320, 450);
+      p.createCanvas(W, H);
       p.textAlign(p.CENTER, p.CENTER);
-      p.textSize(16);
       p.textFont('Vazir');
-      checkButtonColor = p.color(200, 200, 200);
     };
 
     p.draw = function(){
       p.clear();
       p.background(255);
 
-      const startX = 80;
-      const startY = 110;
+      // headers
+      p.textSize(18); p.fill(0);
+      p.text("ورودی ۱", c1, startY - 25);
+      p.text("ورودی ۲", c2, startY - 25);
+      p.text("خروجی",   c3, startY - 25);
+      p.text("نتیجه",   c4, startY - 25);
 
-      p.textSize(18);
-      p.fill(0);
-      p.text("ورودی ۱", startX - 25, startY - 20);
-      p.text("ورودی ۲", startX + 40, startY - 20);
-      p.text("خروجی",   startX + 100, startY - 20);
-      p.text("نتیجه",   startX + 170, startY - 20);
+      // separators
+      const yTop = startY - 35;
+      const yBot = startY + 3*rowGap + cellH + 10;
+      p.stroke(180); p.strokeWeight(1);
+      p.line(((c1+c2)/2)+0.5, yTop, ((c1+c2)/2)+0.5, yBot);
+      p.line(((c2+c3)/2)+0.5, yTop, ((c2+c3)/2)+0.5, yBot);
+      p.line(((c3+c4)/2)+0.5, yTop, ((c3+c4)/2)+0.5, yBot);
 
+      // rows
       for (let i = 0; i < table.length; i++) {
-        // input1
-        p.fill(table[i].input1 ? p.color(50,205,50) : p.color(255,99,71));
-        p.rect(startX - 40, startY + i * 60, 40, 40, 10);
+        const y = startY + i * rowGap;
+
+        // input1 (locked)
+        p.noStroke();
+        p.fill(table[i].i1 ? p.color(46,204,113) : p.color(242,80,58));
+        p.rect(c1 - cellW/2, y, cellW, cellH, 10);
         p.fill(255); p.textSize(16);
-        p.text(table[i].input1, startX - 20, startY + i * 60 + 20);
+        p.text(table[i].i1, c1, y + cellH/2);
 
-        // input2
-        p.fill(table[i].input2 ? p.color(50,205,50) : p.color(255,99,71));
-        p.rect(startX + 20, startY + i * 60, 40, 40, 10);
+        // input2 (locked)
+        p.noStroke();
+        p.fill(table[i].i2 ? p.color(46,204,113) : p.color(242,80,58));
+        p.rect(c2 - cellW/2, y, cellW, cellH, 10);
         p.fill(255);
-        p.text(table[i].input2, startX + 40, startY + i * 60 + 20);
+        p.text(table[i].i2, c2, y + cellH/2);
 
-        // output
-        p.fill(table[i].output ? p.color(50,205,50) : p.color(255,99,71));
-        p.rect(startX + 80, startY + i * 60, 40, 40, 10);
+        // output (interactive look)
+        const outVal = table[i].o;
+        p.stroke(outVal ? p.color(46,204,113) : p.color(242,80,58));
+        p.strokeWeight(2);
         p.fill(255);
-        p.text(table[i].output, startX + 100, startY + i * 60 + 20);
+        p.rect(c3 - cellW/2, y, cellW, cellH, 10);
+        p.noStroke(); p.fill(0);
+        p.text(outVal, c3, y + cellH/2);
+        p.fill(120); p.textSize(11);
 
-        // result
-        p.fill(results[i] ? p.color(50,205,50) : p.color(255,99,71));
-        p.textSize(20);
-        p.text(results[i] ? "✅" : "❌", startX + 160, startY + i * 60 + 20);
+        // result (live)
+        const expected = (table[i].i1 | table[i].i2);
+        results[i] = (outVal === expected);
+        p.textSize(22);
+        p.fill(results[i] ? p.color(46,204,113) : p.color(242,80,58));
+        p.text(results[i] ? "✅" : "❌", c4, y + cellH/2);
+
+      const allValid =
+        (table[0].o === 0) &&
+        (table[1].o === 1) && 
+        (table[2].o === 1) &&
+        (table[3].o === 1);
+      p.textSize(16);
+      p.fill(allValid ? p.color(46,204,113) : p.color(242,80,58));
+      p.text(allValid ? "پاسخ درست است" : "پاسخ نادرست است", (c2 + c3) / 2, 350);
+
       }
-
-      // check button
-      p.fill(checkButtonColor);
-      p.rect(startX + 20, 340, 120, 50, 15);
-      p.fill(255);
-      p.textSize(18);
-      p.text("بررسی", startX + 80, 365);
     };
 
     p.mousePressed = function(){
-      const startX = 80;
-      const startY = 110;
-
+      // toggle outputs only
       for (let i = 0; i < table.length; i++) {
-        // input1 toggle
-        if (p.mouseX > startX - 40 && p.mouseX < startX &&
-            p.mouseY > startY + i * 60 && p.mouseY < startY + i * 60 + 40) {
-          table[i].input1 = 1 - table[i].input1;
+        const x0 = c3 - cellW/2;
+        const y0 = startY + i * rowGap;
+        if (p.mouseX > x0 && p.mouseX < x0 + cellW &&
+            p.mouseY > y0 && p.mouseY < y0 + cellH) {
+          table[i].o = 1 - table[i].o;
         }
-        // input2 toggle
-        if (p.mouseX > startX + 20 && p.mouseX < startX + 60 &&
-            p.mouseY > startY + i * 60 && p.mouseY < startY + i * 60 + 40) {
-          table[i].input2 = 1 - table[i].input2;
-        }
-        // output toggle
-        if (p.mouseX > startX + 80 && p.mouseX < startX + 120 &&
-            p.mouseY > startY + i * 60 && p.mouseY < startY + i * 60 + 40) {
-          table[i].output = 1 - table[i].output;
-        }
-      }
-
-      // validate
-      if (p.mouseX > startX + 20 && p.mouseX < startX + 140 &&
-          p.mouseY > 340 && p.mouseY < 390) {
-        for (let i = 0; i < table.length; i++) {
-          const expected = (table[i].input1 === 1 || table[i].input2 === 1) ? 1 : 0;
-          results[i] = table[i].output === expected;
-        }
-        const isValid = results.every(r => r);
-        checkButtonColor = isValid ? p.color(50,205,50) : p.color(255,99,71);
       }
     };
   };
@@ -248,7 +253,7 @@ let checkButtonColor;
       p.textAlign(p.CENTER, p.CENTER);
       p.textSize(16);
       p.textFont('Vazir');
-      centerY = p.height / 2;
+      centerY = p.height / 2 - 50;
     };
 
     p.draw = function(){

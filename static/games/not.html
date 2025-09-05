@@ -147,7 +147,7 @@ let results = [false, false];
 (function setupTruthTable(){
   const sketch = function(p){
     const W = 320, H = 450;
-    const startY = 120;
+    const startY = 60;
     const rowGap = 60;
     const cellW = 40, cellH = 40;
     const colGap = 80;
@@ -203,8 +203,8 @@ let results = [false, false];
         p.fill(0);
         p.text(outVal, c2, y + cellH/2);
 
-        p.fill(120); p.textSize(11);
-        p.text("کلیک کنید", c2, y + cellH + 12);
+        // p.fill(120); p.textSize(11);
+        // p.text("کلیک کنید", c2, y + cellH + 12);
 
         // result cell (instant)
         results[i] = (table[i].input ^ table[i].output) === 1;
