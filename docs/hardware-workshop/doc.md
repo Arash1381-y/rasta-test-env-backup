@@ -109,32 +109,35 @@ import ResponsiveIframe from '@site/src/components/ResponsiveIframe';
 </div>
 
 
+## بازی جمله‌سازی
 
 <div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
-  <ResponsiveIframe src="/games/sentence-0.html" height="400px" />
+  <ResponsiveIframe src="/games/sentence-0.html" height="500px" />
 </div>
 
+## بازی‌های گیت‌ها
+
+
+### گیت NOT
 
 <div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
   <ResponsiveIframe src="/games/not.html" height="500px" />
 </div>
 
 
+### گیت AND
+
 <div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
   <ResponsiveIframe src="/games/and.html" height="500px" />
 </div>
+
+### گیت OR
 
 
 <div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
   <ResponsiveIframe src="/games/or.html" height="500px" />
 </div>
 
-
-<iframe
-      src="/games/or.html"
-      width="800px"
-      height="700px"
-/>
 
 
 
