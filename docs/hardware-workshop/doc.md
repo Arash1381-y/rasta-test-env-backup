@@ -107,3 +107,10 @@ import ResponsiveIframe from '@site/src/components/ResponsiveIframe';
 <div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
   <ResponsiveIframe src="/games/fingers-count-3.html" height="400px" />
 </div>
+
+
+
+<div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
+  <ResponsiveIframe src="/games/sentence-0.html" height="400px" />
+</div>
+
