@@ -102,3 +102,8 @@ import ResponsiveIframe from '@site/src/components/ResponsiveIframe';
 
 </details>
 
+حال بنظر شما با ۴ انگشت تا چه عدد را می‌توان نمایش داد؟
+
+<div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
+  <ResponsiveIframe src="/games/fingers-count-3.html" height="400px" />
+</div>
