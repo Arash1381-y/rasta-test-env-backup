@@ -1,49 +1,137 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>NOT Gate Mini-Game</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
   <style>
     @font-face {
       font-family: 'Vazir';
       src: url('https://cdn.fontcdn.ir/Font/Persian/Vazir/Vazir.woff') format('woff');
+      font-display: swap;
     }
-    canvas {
-      border-radius: 15px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-      background: #ffffff;
-      width: 100%;
-      max-width: 320px;
+    :root{
+      --box-w: 320px;
+      --box-h: 450px;
+      --radius: 14px;
+      --shadow: 0 2px 10px rgba(0,0,0,0.12);
     }
-    /* Tailwind CSS compiled output (subset for used classes) */
-    .min-h-screen { min-height: 100vh; }
-    .bg-gradient-to-br { background-image: linear-gradient(to bottom right, var(--tw-gradient-stops)); }
-    .from-cyan-100 { --tw-gradient-from: #cffafe; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(207, 250, 254, 0)); }
-    .to-cyan-200 { --tw-gradient-to: #a5f3fc; }
-    .flex { display: flex; }
-    .flex-col { flex-direction: column; }
-    .items-center { align-items: center; }
-    .justify-center { justify-content: center; }
-    .p-4 { padding: 1rem; }
-    .max-w-6xl { max-width: 72rem; }
-    .w-full { width: 100%; }
-    .gap-4 { gap: 1rem; }
-    .flex-1 { flex: 1 1 0%; }
-    @media (min-width: 768px) {
-      .md\:flex-row { flex-direction: row; }
+    /* Layout */
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:#fff;
+      font-family: Vazir, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+    }
+    .wrap{
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+      width:100%;
+      max-width:1100px;
+      align-items:center;
+      justify-content:center;
+    }
+    @media (min-width:768px){
+      .wrap{ flex-direction:row; }
+    }
+    /* Boxes */
+    .box{
+      flex:1 1 0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-width:340px; /* keeps parity on desktop */
+    }
+    .card{
+      width:var(--box-w);
+      height:var(--box-h);
+      background:#fff;
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+    }
+    .card-head{
+      padding:10px 14px;
+      text-align:center;
+      font-size:20px;
+      border-bottom:1px solid #eee;
+    }
+    .card-body{
+      flex:1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:10px;
+    }
+    /* Schematic content */
+    .schematic-inner{
+      width:100%;
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:16px;
+    }
+    .schematic-img{
+      width:240px;
+      height:auto;
+      display:block;
+    }
+    /* p5 canvas styling parity */
+    canvas{
+      display:block;
+      border-radius:0; /* canvas sits inside card */
+      width:var(--box-w);
+      height:var(--box-h);
     }
   </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-cyan-100 to-cyan-200 flex items-center justify-center p-4">
-  <div class="flex flex-col md:flex-row gap-4 max-w-6xl w-full items-center justify-center">
-    <div id="schematic" class="flex-1 flex justify-center"></div>
-    <div id="truth-table" class="flex-1 flex justify-center"></div>
-    <div id="circuit" class="flex-1 flex justify-center"></div>
+<body>
+  <div class="wrap">
+    <!-- Schematic box (DOM image, no p5 loadImage) -->
+    <div class="box">
+      <div class="card">
+        <div class="card-head">شماتیک گیت NOT</div>
+        <div class="card-body">
+          <div class="schematic-inner">
+            <img class="schematic-img" src="not-gate.svg" alt="NOT Gate"/>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Truth table box -->
+    <div class="box">
+      <div class="card">
+        <div class="card-head">جدول درستی</div>
+        <div class="card-body">
+          <div id="truth-table"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Circuit box -->
+    <div class="box">
+      <div class="card">
+        <div class="card-head">مدار تعاملی</div>
+        <div class="card-body">
+          <div id="circuit"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
 <script>
+/* shared state */
 let switchState = 0;
 let table = [
   { input: Math.floor(Math.random() * 2), output: Math.floor(Math.random() * 2) },
@@ -52,75 +140,10 @@ let table = [
 let results = [false, false];
 let checkButtonColor;
 
-function setupSchematic() {
-  let sketch = function(p) {
-    p.setup = function() {
-      p.createCanvas(320, 450);
-      p.textAlign(p.CENTER, p.CENTER);
-      p.textSize(16);
-      p.textFont('Vazir');
-    };
-
-    p.draw = function() {
-      p.background(255);
-      p.fill(255);
-      p.stroke(0);
-      p.strokeWeight(1);
-      p.rect(20, 30, 280, 390, 20);
-      p.textSize(22);
-      p.fill(0);
-      p.text("شماتیک گیت NOT", 160, 60);
-
-      // Battery (centered)
-      p.strokeWeight(4);
-      p.stroke(100, 100, 100);
-      p.line(100, 220, 130, 220);
-      p.line(100, 210, 100, 230);
-      p.line(130, 215, 130, 225);
-      p.stroke(0);
-      p.strokeWeight(1);
-
-      // Switch (centered)
-      p.strokeWeight(4);
-      p.line(130, 220, 160, 220);
-      if (switchState == 1) {
-        p.line(160, 220, 190, 220);
-      } else {
-        p.line(160, 220, 180, 200);
-      }
-      p.fill(255, 182, 193);
-      p.ellipse(160, 220, 12, 12);
-      p.ellipse(190, 220, 12, 12);
-
-      // NOT Gate (centered)
-      p.strokeWeight(1);
-      p.fill(173, 216, 230);
-      p.triangle(200, 200, 200, 240, 240, 220);
-      p.fill(255);
-      p.ellipse(240, 220, 10, 10);
-
-      // Lamp (centered)
-      p.stroke(100, 100, 100);
-      p.strokeWeight(4);
-      p.line(240, 220, 270, 220);
-      p.strokeWeight(1);
-      p.stroke(0);
-      p.fill(switchState == 0 ? p.color(255, 255, 0) : p.color(200, 200, 200));
-      p.ellipse(270, 220, 25, 25);
-    };
-
-    p.mousePressed = function() {
-      if (p.mouseX > 160 && p.mouseX < 190 && p.mouseY > 200 && p.mouseY < 240) {
-        switchState = 1 - switchState;
-      }
-    };
-  };
-  new p5(sketch, 'schematic');
-}
-
-function setupTruthTable() {
-  let sketch = function(p) {
-    p.setup = function() {
+/* Truth table sketch */
+(function setupTruthTable(){
+  const sketch = function(p){
+    p.setup = function(){
       p.createCanvas(320, 450);
       p.textAlign(p.CENTER, p.CENTER);
       p.textSize(16);
@@ -128,179 +151,179 @@ function setupTruthTable() {
       checkButtonColor = p.color(200, 200, 200);
     };
 
-    p.draw = function() {
+    p.draw = function(){
+      p.clear();
       p.background(255);
-      p.fill(255);
-      p.rect(20, 30, 280, 390, 20);
-      p.textSize(22);
-      p.fill(0);
-      p.text("جدول درستی", 160, 60);
-      let startX = 100;
-      let startY = 140;
+
+      const startX = 100;
+      const startY = 120;
 
       p.textSize(18);
+      p.fill(0);
       p.text("ورودی", startX, startY - 30);
       p.text("خروجی", startX + 80, startY - 30);
       p.text("نتیجه", startX + 160, startY - 30);
 
       for (let i = 0; i < table.length; i++) {
-        // Input
+        // input cell
         p.fill(table[i].input ? p.color(50, 205, 50) : p.color(255, 99, 71));
         p.rect(startX - 20, startY + i * 60, 40, 40, 10);
         p.fill(255);
         p.textSize(16);
         p.text(table[i].input, startX, startY + i * 60 + 20);
 
-        // Output
+        // output cell
         p.fill(table[i].output ? p.color(50, 205, 50) : p.color(255, 99, 71));
         p.rect(startX + 60, startY + i * 60, 40, 40, 10);
         p.fill(255);
         p.text(table[i].output, startX + 80, startY + i * 60 + 20);
 
-        // Result
+        // result cell
+        p.textSize(22);
         p.fill(results[i] ? p.color(50, 205, 50) : p.color(255, 99, 71));
-        p.textSize(20);
         p.text(results[i] ? "✅" : "❌", startX + 160, startY + i * 60 + 20);
       }
 
+      // check button
       p.fill(checkButtonColor);
-      p.rect(startX + 1, 300, 120, 50, 15);
+      p.rect(startX + 1, 290, 120, 50, 15);
       p.fill(255);
       p.textSize(18);
-      p.text("بررسی", startX + 60, 325);
+      p.text("بررسی", startX + 60, 315);
     };
 
-    p.mousePressed = function() {
-      let startX = 100;
-      let startY = 140;
+    p.mousePressed = function(){
+      const startX = 100;
+      const startY = 120;
+
       for (let i = 0; i < table.length; i++) {
-        if (p.mouseX > startX - 20 && p.mouseX < startX + 20 && p.mouseY > startY + i * 60 && p.mouseY < startY + i * 60 + 40) {
+        if (p.mouseX > startX - 20 && p.mouseX < startX + 20 &&
+            p.mouseY > startY + i * 60 && p.mouseY < startY + i * 60 + 40) {
           table[i].input = 1 - table[i].input;
         }
-        if (p.mouseX > startX + 60 && p.mouseX < startX + 100 && p.mouseY > startY + i * 60 && p.mouseY < startY + i * 60 + 40) {
+        if (p.mouseX > startX + 60 && p.mouseX < startX + 100 &&
+            p.mouseY > startY + i * 60 && p.mouseY < startY + i * 60 + 40) {
           table[i].output = 1 - table[i].output;
         }
       }
 
-      if (p.mouseX > startX + 20 && p.mouseX < startX + 140 && p.mouseY > 300 && p.mouseY < 350) {
-        let row1 = [table[0].input, table[0].output];
-        let row2 = [table[1].input, table[1].output];
-        let isValid = (
-          (row1[0] === 0 && row1[1] === 1 && row2[0] === 1 && row2[1] === 0) ||
-          (row1[0] === 1 && row1[1] === 0 && row2[0] === 0 && row2[1] === 1)
-        );
-        results[0] = (row1[0] === 0 && row1[1] === 1) || (row1[0] === 1 && row1[1] === 0);
-        results[1] = (row2[0] === 1 && row2[1] === 0) || (row2[0] === 0 && row2[1] === 1);
+      if (p.mouseX > startX + 20 && p.mouseX < startX + 140 &&
+          p.mouseY > 290 && p.mouseY < 340) {
+        const r1 = [table[0].input, table[0].output];
+        const r2 = [table[1].input, table[1].output];
+        const isValid =
+          (r1[0] === 0 && r1[1] === 1 && r2[0] === 1 && r2[1] === 0) ||
+          (r1[0] === 1 && r1[1] === 0 && r2[0] === 0 && r2[1] === 1);
+
+        results[0] = (r1[0] ^ r1[1]) === 1;
+        results[1] = (r2[0] ^ r2[1]) === 1;
+
         checkButtonColor = isValid ? p.color(50, 205, 50) : p.color(255, 99, 71);
       }
     };
   };
   new p5(sketch, 'truth-table');
-}
+})();
 
-function setupCircuit() {
-  let sketch = function(p) {
-    p.setup = function() {
+/* Circuit sketch */
+(function setupCircuit(){
+  const sketch = function(p){
+    let switchOn = false;
+
+    p.setup = function(){
       p.createCanvas(320, 450);
       p.textAlign(p.CENTER, p.CENTER);
       p.textSize(16);
       p.textFont('Vazir');
     };
 
-    p.draw = function() {
+    p.draw = function(){
+      p.clear();
       p.background(255);
-      p.fill(255);
-      p.rect(20, 30, 280, 390, 20);
-      p.textSize(22);
-      p.fill(0);
-      p.text("مدار تعاملی", 160, 60);
 
-      p.strokeWeight(3);
-      p.stroke(0, 102, 204);
-
-      // Battery (bottom-left, centered)
-      p.fill(255);
-      p.rect(70, 290, 25, 35, 5);
-      p.fill(0);
-      p.textSize(16);
-      p.text("+", 78, 302);
-      p.text("−", 78, 318);
-      p.strokeWeight(3);
-      p.line(82, 290, 82, 140);
-
-      // Resistor (top side, centered)
-      p.stroke(0, 153, 76);
-      p.strokeWeight(2);
-      p.beginShape();
-      p.vertex(112, 140);
-      p.vertex(119, 130);
-      p.vertex(126, 150);
-      p.vertex(133, 130);
-      p.vertex(140, 140);
-      p.endShape();
-      p.stroke(0, 102, 204);
-      p.strokeWeight(3);
-
-      // Wire to resistor and switch
-      p.line(82, 140, 112, 140);
-      p.line(140, 140, 170, 140);
-
-      // Digital Display (above switch)
-      p.fill(50, 50, 50); // Dark gray for LED-like background
-      p.rect(170, 80, 40, 30, 10);
-      p.textSize(20);
-      p.text(switchState == 1 ? "1" : "0", 190, 98);
-      p.stroke(0);
-      p.strokeWeight(3);
-      p.stroke(0, 102, 204);
-
-      // Switch (middle of top side, centered)
-      if (switchState == 1) {
-        p.line(170, 140, 210, 140);
-      } else {
-        p.line(170, 140, 190, 120);
-      }
-      p.fill(255, 182, 193);
-      p.ellipse(170, 140, 15, 15);
-      p.ellipse(210, 140, 15, 15);
-
-      // Wire to lamp
-      p.line(210, 140, 250, 140);
-      p.line(250, 140, 250, 260);
-
-      // Lamp (right side, centered)
-      p.fill(switchState == 0 ? p.color(255, 223, 0) : p.color(200, 200, 200));
-      p.ellipse(250, 260, 35, 35);
-      p.strokeWeight(1);
-      p.stroke(0);
-      if (switchState == 0) {
-        p.noFill();
-        p.stroke(255, 223, 0, 100);
-        p.ellipse(250, 260, 45, 45);
-        p.stroke(255, 223, 0, 50);
-        p.ellipse(250, 260, 55, 55);
-      }
-      p.strokeWeight(3);
-      p.stroke(0, 102, 204);
-
-      // Wire back to battery
-      p.line(230, 260, 82, 260);
-      p.strokeWeight(1);
-      p.stroke(0);
+      drawCircuit();
     };
 
-    p.mousePressed = function() {
-      if (p.mouseX > 170 && p.mouseX < 210 && p.mouseY > 120 && p.mouseY < 160) {
-        switchState = 1 - switchState;
+    function drawCircuit(){
+      const centerX = 160;
+      const centerY = 225;
+      const w = 150;
+      const h = 90;
+
+      // wires
+      p.stroke(0); p.strokeWeight(3); p.noFill();
+      p.line(centerX - w/2, centerY - h/2, centerX + w/2, centerY - h/2);           // top
+      p.line(centerX + w/2, centerY - h/2, centerX + w/2, centerY + h/2);           // right
+      p.line(centerX + w/2, centerY + h/2, centerX + 15, centerY + h/2);            // bottom right
+      p.line(centerX - 15, centerY + h/2, centerX - w/2, centerY + h/2);            // bottom left
+      p.line(centerX - w/2, centerY + h/2, centerX - w/2, centerY - h/2);           // left
+
+      drawBattery(centerX - w/2, centerY);
+      drawResistor(centerX, centerY - h/2);
+      drawBulb(centerX + w/2, centerY);
+      drawSwitch(centerX, centerY + h/2);
+    }
+
+    function drawBattery(x, y){
+      p.push(); p.translate(x, y);
+      p.stroke(0); p.strokeWeight(4); p.line(-15, 0, 15, 0);
+      p.strokeWeight(3); p.line(-10, 8, 10, 8);
+      p.noStroke(); p.fill(0); p.textSize(10); p.text('باتری', -30, 3);
+      p.pop();
+    }
+
+    function drawResistor(x, y){
+      p.push(); p.translate(x, y);
+      p.stroke(0); p.strokeWeight(3); p.noFill();
+      p.beginShape();
+      p.vertex(-22, 0); p.vertex(-15, 0);
+      p.vertex(-11, -8); p.vertex(-4, 8);
+      p.vertex(4, -8); p.vertex(11, 8);
+      p.vertex(15, 0); p.vertex(22, 0);
+      p.endShape();
+      p.noStroke(); p.fill(0); p.textSize(10); p.text('مقاومت', 0, 20); p.text('R', 0, -15);
+      p.pop();
+    }
+
+    function drawBulb(x, y){
+      p.push(); p.translate(x, y);
+      p.stroke(0); p.strokeWeight(2);
+      p.fill(switchOn ? p.color(255,255,0) : 255);
+      p.ellipse(0, 0, 30, 30);
+      p.stroke(switchOn ? p.color(255,150,0) : 0); p.strokeWeight(switchOn ? 2 : 1);
+      p.line(-6,-6,6,6); p.line(-6,6,6,-6);
+      p.noStroke(); p.fill(0); p.textSize(10); p.text('لامپ', 20, 0);
+      p.pop();
+    }
+
+    function drawSwitch(x, y){
+      p.push(); p.translate(x, y);
+      p.stroke(0); p.strokeWeight(3); p.fill(0);
+      p.ellipse(-15, 0, 5, 5); p.ellipse(15, 0, 5, 5);
+
+      if (switchOn) {
+        p.stroke(0,150,0); p.strokeWeight(4); p.line(-15, 0, 15, 0);
+      } else {
+        p.stroke(255,0,0); p.strokeWeight(3); p.line(-15, 0, 10, -12);
+      }
+
+      p.noStroke(); p.fill(0); p.textSize(10); p.text('سویچ', 0, 20);
+      p.text(switchOn ? 'بسته' : 'باز', 0, 32);
+      p.pop();
+    }
+
+    p.mousePressed = function(){
+      const switchX = 160;
+      const switchY = 225 + 45;
+      const d = p.dist(p.mouseX, p.mouseY, switchX, switchY);
+      if (d < 20) {
+        switchOn = !switchOn;
+        switchState = switchOn ? 1 : 0;
       }
     };
   };
   new p5(sketch, 'circuit');
-}
-
-setupSchematic();
-setupTruthTable();
-setupCircuit();
+})();
 </script>
 </body>
 </html>
