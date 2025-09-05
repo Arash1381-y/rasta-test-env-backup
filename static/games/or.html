@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>OR Gate Mini-Game</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+  <style>
+    @font-face {
+      font-family: 'Vazir';
+      src: url('https://cdn.fontcdn.ir/Font/Persian/Vazir/Vazir.woff') format('woff');
+      font-display: swap;
+    }
+    :root{
+      --box-w: 320px;
+      --box-h: 450px;
+      --radius: 14px;
+      --shadow: 0 2px 10px rgba(0,0,0,0.12);
+    }
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:#fff;
+      font-family: Vazir, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+      direction: rtl;
+    }
+    .wrap{
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+      width:100%;
+      max-width:1100px;
+      align-items:center;
+      justify-content:center;
+    }
+    @media (min-width:768px){
+      .wrap{ flex-direction:row; }
+    }
+    .box{
+      flex:1 1 0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-width:340px;
+    }
+    .card{
+      width:var(--box-w);
+      height:var(--box-h);
+      background:#fff;
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+    }
+    .card-head{
+      padding:10px 14px;
+      text-align:center;
+      font-size:20px;
+      border-bottom:1px solid #eee;
+    }
+    .card-body{
+      flex:1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:10px;
+    }
+    .schematic-inner{
+      width:100%;
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:16px;
+    }
+    .schematic-img{
+      width:240px;
+      height:auto;
+      display:block;
+    }
+    canvas{
+      display:block;
+      border-radius:0;
+      width:var(--box-w);
+      height:var(--box-h);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- Circuit -->
+    <div class="box">
+      <div class="card">
+        <div class="card-head">مدار تعاملی</div>
+        <div class="card-body">
+          <div id="circuit"></div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- Truth table -->
+    <div class="box">
+      <div class="card">
+        <div class="card-head">جدول درستی گیت OR</div>
+        <div class="card-body">
+          <div id="truth-table"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Schematic -->
+    <div class="box">
+      <div class="card">
+        <div class="card-head">شماتیک گیت OR</div>
+        <div class="card-body">
+          <div class="schematic-inner">
+              <img class="schematic-img" src="OR.png" alt="OR Gate">
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+  </div>
+
+<script>
+/* ---------- Shared state ---------- */
+let table = [
+  { input1: 0, input2: 0, output: 0 },
+  { input1: 0, input2: 1, output: 0 },
+  { input1: 1, input2: 0, output: 0 },
+  { input1: 1, input2: 1, output: 0 }
+];
+let results = [false, false, false, false];
+let checkButtonColor;
+
+/* ---------- Truth table (p5) ---------- */
+(function setupTruthTable(){
+  const sketch = function(p){
+    p.setup = function(){
+      p.createCanvas(320, 450);
+      p.textAlign(p.CENTER, p.CENTER);
+      p.textSize(16);
+      p.textFont('Vazir');
+      checkButtonColor = p.color(200, 200, 200);
+    };
+
+    p.draw = function(){
+      p.clear();
+      p.background(255);
+
+      const startX = 80;
+      const startY = 110;
+
+      p.textSize(18);
+      p.fill(0);
+      p.text("ورودی ۱", startX - 25, startY - 20);
+      p.text("ورودی ۲", startX + 40, startY - 20);
+      p.text("خروجی",   startX + 100, startY - 20);
+      p.text("نتیجه",   startX + 170, startY - 20);
+
+      for (let i = 0; i < table.length; i++) {
+        // input1
+        p.fill(table[i].input1 ? p.color(50,205,50) : p.color(255,99,71));
+        p.rect(startX - 40, startY + i * 60, 40, 40, 10);
+        p.fill(255); p.textSize(16);
+        p.text(table[i].input1, startX - 20, startY + i * 60 + 20);
+
+        // input2
+        p.fill(table[i].input2 ? p.color(50,205,50) : p.color(255,99,71));
+        p.rect(startX + 20, startY + i * 60, 40, 40, 10);
+        p.fill(255);
+        p.text(table[i].input2, startX + 40, startY + i * 60 + 20);
+
+        // output
+        p.fill(table[i].output ? p.color(50,205,50) : p.color(255,99,71));
+        p.rect(startX + 80, startY + i * 60, 40, 40, 10);
+        p.fill(255);
+        p.text(table[i].output, startX + 100, startY + i * 60 + 20);
+
+        // result
+        p.fill(results[i] ? p.color(50,205,50) : p.color(255,99,71));
+        p.textSize(20);
+        p.text(results[i] ? "✅" : "❌", startX + 160, startY + i * 60 + 20);
+      }
+
+      // check button
+      p.fill(checkButtonColor);
+      p.rect(startX + 20, 340, 120, 50, 15);
+      p.fill(255);
+      p.textSize(18);
+      p.text("بررسی", startX + 80, 365);
+    };
+
+    p.mousePressed = function(){
+      const startX = 80;
+      const startY = 110;
+
+      for (let i = 0; i < table.length; i++) {
+        // input1 toggle
+        if (p.mouseX > startX - 40 && p.mouseX < startX &&
+            p.mouseY > startY + i * 60 && p.mouseY < startY + i * 60 + 40) {
+          table[i].input1 = 1 - table[i].input1;
+        }
+        // input2 toggle
+        if (p.mouseX > startX + 20 && p.mouseX < startX + 60 &&
+            p.mouseY > startY + i * 60 && p.mouseY < startY + i * 60 + 40) {
+          table[i].input2 = 1 - table[i].input2;
+        }
+        // output toggle
+        if (p.mouseX > startX + 80 && p.mouseX < startX + 120 &&
+            p.mouseY > startY + i * 60 && p.mouseY < startY + i * 60 + 40) {
+          table[i].output = 1 - table[i].output;
+        }
+      }
+
+      // validate
+      if (p.mouseX > startX + 20 && p.mouseX < startX + 140 &&
+          p.mouseY > 340 && p.mouseY < 390) {
+        for (let i = 0; i < table.length; i++) {
+          const expected = (table[i].input1 === 1 || table[i].input2 === 1) ? 1 : 0;
+          results[i] = table[i].output === expected;
+        }
+        const isValid = results.every(r => r);
+        checkButtonColor = isValid ? p.color(50,205,50) : p.color(255,99,71);
+      }
+    };
+  };
+  new p5(sketch, 'truth-table');
+})();
+
+/* ---------- Circuit (p5) ---------- */
+(function setupCircuit(){
+  const sketch = function(p){
+    let switch1On = false;
+    let switch2On = false;
+    let centerY;
+
+    p.setup = function(){
+      p.createCanvas(320, 450);
+      p.textAlign(p.CENTER, p.CENTER);
+      p.textSize(16);
+      p.textFont('Vazir');
+      centerY = p.height / 2;
+    };
+
+    p.draw = function(){
+      p.clear();
+      p.background(255);
+      drawCircuit();
+    };
+
+    function drawCircuit(){
+      const centerX = p.width / 2;
+      const circuitWidth = 240;
+      const circuitHeight = 120;
+
+      const topWireY = centerY - circuitHeight / 2;
+      const bottomWireY = centerY + circuitHeight / 2;
+      const leftWireX = centerX - circuitWidth / 2;
+      const rightWireX = centerX + circuitWidth / 2;
+
+      const switchBoxX_left  = centerX - circuitWidth / 4;
+      const switchBoxX_right = centerX + circuitWidth / 4;
+      const switchYTop    = centerY - circuitHeight / 2;
+      const switchYBottom = centerY - circuitHeight / 2 + 30;
+
+      p.stroke(0); p.strokeWeight(3); p.noFill();
+
+      // frame
+      p.line(leftWireX, topWireY, switchBoxX_left, topWireY);
+      p.line(switchBoxX_right, topWireY, rightWireX, topWireY);
+      p.line(leftWireX, bottomWireY, centerX, bottomWireY);
+      p.line(centerX, bottomWireY, rightWireX, bottomWireY);
+      p.line(leftWireX, topWireY, leftWireX, bottomWireY);
+      p.line(rightWireX, topWireY, rightWireX, bottomWireY);
+
+      // battery left
+      drawBattery(leftWireX, centerY);
+
+      // lamp bottom center
+      drawBulb(centerX, bottomWireY, switch1On || switch2On);
+
+      // vertical connectors for parallel branch
+      p.line(switchBoxX_left, topWireY,  switchBoxX_left,  switchYBottom);
+      p.line(switchBoxX_right, topWireY, switchBoxX_right, switchYBottom);
+
+      // branch 1 wires
+      const mid1 = (switchBoxX_left + switchBoxX_right) / 2;
+      p.line(switchBoxX_left, switchYTop, mid1 - 15, switchYTop);
+      p.line(mid1 + 15, switchYTop, switchBoxX_right, switchYTop);
+      drawSwitchArm(mid1, switchYTop, switch1On);
+      drawSwitchTerminals(mid1, switchYTop, 'A');
+
+      // branch 2 wires
+      const mid2 = (switchBoxX_left + switchBoxX_right) / 2;
+      p.line(switchBoxX_left, switchYBottom, mid2 - 15, switchYBottom);
+      p.line(mid2 + 15, switchYBottom, switchBoxX_right, switchYBottom);
+      drawSwitchArm(mid2, switchYBottom, switch2On);
+      drawSwitchTerminals(mid2, switchYBottom, 'B');
+    }
+
+    function drawBattery(x, yCenter){
+      p.push(); p.translate(x, yCenter);
+      p.stroke(0); p.strokeWeight(4); p.line(-20, -5, 20, -5);
+      p.strokeWeight(3); p.line(-10, 5, 10, 5);
+      p.noStroke(); p.fill(0); p.textSize(10); p.text('باتری', 35, 10);
+      p.pop();
+    }
+
+    function drawBulb(x, y, on){
+      p.push(); p.translate(x, y);
+      p.stroke(0); p.strokeWeight(2);
+      p.fill(on ? p.color(255,255,0) : 255);
+      p.ellipse(0, 0, 30, 30);
+      p.stroke(on ? p.color(255,150,0) : 0); p.strokeWeight(on ? 2 : 1);
+      p.line(-6,-6,6,6); p.line(-6,6,6,-6);
+      p.noStroke(); p.fill(0); p.textSize(10); p.text('لامپ', 20, 15);
+      p.pop();
+    }
+
+    function drawSwitchTerminals(x, y, label){
+      p.push(); p.translate(x, y);
+      p.stroke(0); p.strokeWeight(3); p.fill(0);
+      p.ellipse(-15, 0, 5, 5); p.ellipse(15, 0, 5, 5);
+      p.noStroke(); p.fill(0); p.textSize(10); p.textAlign(p.CENTER); p.text(label, 0, 20);
+      p.pop();
+    }
+
+    function drawSwitchArm(x, y, isOn){
+      p.push(); p.translate(x, y);
+      if (isOn) { p.stroke(0,150,0); p.strokeWeight(4); p.line(-15, 0, 15, 0); }
+      else { p.stroke(255,0,0); p.strokeWeight(3); p.line(-15, 0, 10, -12); }
+      p.pop();
+    }
+
+    p.mousePressed = function(){
+      const centerX = p.width / 2;
+      const circuitWidth = 240;
+      const circuitHeight = 120;
+
+      const switchBoxX_left  = centerX - circuitWidth / 4;
+      const switchBoxX_right = centerX + circuitWidth / 4;
+      const switchYTop    = centerY - circuitHeight / 2;
+      const switchYBottom = centerY - circuitHeight / 2 + 30;
+
+      const midX = (switchBoxX_left + switchBoxX_right) / 2;
+
+      const d1 = p.dist(p.mouseX, p.mouseY, midX, switchYTop);
+      const d2 = p.dist(p.mouseX, p.mouseY, midX, switchYBottom);
+
+      if (d1 < 20) switch1On = !switch1On;
+      if (d2 < 20) switch2On = !switch2On;
+    };
+  };
+  new p5(sketch, 'circuit');
+})();
+</script>
+</body>
+</html>
