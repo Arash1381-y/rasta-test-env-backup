@@ -116,6 +116,28 @@ import ResponsiveIframe from '@site/src/components/ResponsiveIframe';
 
 
 <div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
-  <ResponsiveIframe src="/games/not.html" height="400px" />
+  <ResponsiveIframe src="/games/not.html" height="500px" />
 </div>
+
+
+<div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
+  <ResponsiveIframe src="/games/and.html" height="500px" />
+</div>
+
+
+<div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
+  <ResponsiveIframe src="/games/or.html" height="500px" />
+</div>
+
+
+<iframe
+      src="/games/or.html"
+      width="800px"
+      height="700px"
+/>
+
+
+
+
+
 

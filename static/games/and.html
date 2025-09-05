@@ -6,90 +6,124 @@
   <title>AND Gate Mini-Game</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
   <style>
-    @font-face {
-      font-family: 'Vazir';
-      src: url('https://cdn.fontcdn.ir/Font/Persian/Vazir/Vazir.woff') format('woff');
-      font-display: swap;
-    }
-    :root{
-      --box-w: 320px;
-      --box-h: 450px;
-      --radius: 14px;
-      --shadow: 0 2px 10px rgba(0,0,0,0.12);
-    }
-    html,body{height:100%}
-    body{
-      margin:0;
-      background:#fff;
-      font-family: Vazir, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:16px;
-      direction: rtl;
-    }
-    .wrap{
-      display:flex;
-      flex-direction:column;
-      gap:16px;
-      width:100%;
-      max-width:1100px;
-      align-items:center;
-      justify-content:center;
-    }
-    @media (min-width:768px){
-      .wrap{ flex-direction:row; }
-    }
-    .box{
-      flex:1 1 0;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      min-width:340px;
-    }
-    .card{
-      width:var(--box-w);
-      height:var(--box-h);
-      background:#fff;
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
-      display:flex;
-      flex-direction:column;
-      overflow:hidden;
-    }
-    .card-head{
-      padding:10px 14px;
-      text-align:center;
-      font-size:20px;
-      border-bottom:1px solid #eee;
-    }
-    .card-body{
-      flex:1;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:10px;
-    }
-    .schematic-inner{
-      width:100%;
-      height:100%;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      gap:16px;
-    }
-    .schematic-img{
-      width:240px;
-      height:auto;
-      display:block;
-    }
-    canvas{
-      display:block;
-      border-radius:0;
-      width:var(--box-w);
-      height:var(--box-h);
-    }
+
+@font-face{
+  font-family:'Vazir';
+  src:url('https://cdn.fontcdn.ir/Font/Persian/Vazir/Vazir.woff') format('woff');
+  font-display:swap;
+}
+
+/* Base = small screens: stack + shrink */
+:root{
+  --box-w: clamp(220px, 90vw, 300px);
+  --box-h: clamp(300px, 70vh, 400px);
+  --radius: 14px;
+  --shadow: 0 2px 10px rgba(0,0,0,0.12);
+}
+
+/* sm */
+@media (min-width:640px){
+  :root{ --box-w: 280px; --box-h: 420px; }
+}
+
+/* md+: single row */
+@media (min-width:768px){
+  :root{ --box-w: 320px; --box-h: 450px; }
+}
+
+/* lg */
+@media (min-width:1024px){
+  :root{ --box-w: 340px; --box-h: 480px; }
+}
+
+html,body{height:100%}
+body{
+  margin:0;
+  background:#fff;
+  font-family: Vazir, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  direction: rtl;
+}
+
+.wrap{
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+  width:100%;
+  max-width:1100px;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;              /* wrap on small */
+}
+@media (min-width:768px){
+  .wrap{
+    flex-direction:row;
+    flex-wrap:nowrap;          /* single row on md+ */
+    gap:20px;
+  }
+}
+
+.box{
+  flex:1 1 auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-width:0;                 /* allow shrinking */
+}
+
+.card{
+  width:var(--box-w);
+  height:var(--box-h);
+  background:#fff;
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  margin: 0 2px;
+}
+
+.card-head{
+  padding:10px 14px;
+  text-align:center;
+  font-size:20px;
+  border-bottom:1px solid #eee;
+}
+
+.card-body{
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:10px;
+}
+
+/* schematic */
+.schematic-inner{
+  width:100%;
+  height:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:16px;
+}
+.schematic-img{
+  width:calc(var(--box-w) * 0.75);
+  max-width:90%;
+  height:auto;
+  display:block;
+}
+
+/* p5 canvases scale with card */
+canvas{
+  display:block;
+  width:100%;
+  height:100%;
+  border-radius:0;
+}
   </style>
 </head>
 <body>
