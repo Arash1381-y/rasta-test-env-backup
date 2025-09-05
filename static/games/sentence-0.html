@@ -1,90 +1,187 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>مینی‌گیم جمله‌سازی</title>
-
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;500;800&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;500;800&display=swap" rel="stylesheet"/>
   <script src="https://cdn.tailwindcss.com"></script>
-
   <style>
-    
-      html, body { background: transparent !important; font-family: "Vazirmatn", sans-serif; }
-      *, *::before, *::after { box-sizing: border-box; }
+    html,body{background:transparent!important;font-family:"Vazirmatn",sans-serif}
+    .token{user-select:none;cursor:grab}
+    .token:active{cursor:grabbing}
+    .slot{min-width:72px;min-height:40px;border:2px dashed #d1d5db;border-radius:10px;padding:6px 10px;margin:6px;display:flex;align-items:center;justify-content:center;transition:.12s}
+    .slot.hover{border-color:#6366f1;background:#eef2ff}
+    .slot.filled{padding: 0; border-style: none;}
+    .area{min-height:70px}
   </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4 font-sans">
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
   <div class="w-full max-w-xl bg-white rounded-2xl p-6">
     <h2 class="text-2xl font-bold text-center mb-4">جمله را کامل کن:</h2>
-    
-    <!-- جمله ساخته شده -->
-    <div id="sentenceArea" class="min-h-[70px] flex flex-wrap items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-4 text-lg text-gray-700 transition-all"></div>
-    
-    <!-- کلمات -->
+
+    <!-- جعبه‌های ثابت (n عدد) -->
+    <div id="sentenceArea"
+         class="area flex flex-wrap items-center justify-center rounded-xl p-4 text-lg text-gray-700 transition-all"></div>
+
+    <!-- پیام نتیجه -->
+    <div id="resultMsg" class="text-center mt-3 font-bold text-lg"></div>
+
+    <!-- بانک کلمات -->
     <div id="wordBank" class="flex flex-wrap gap-3 justify-center mt-6"></div>
-    
+
     <!-- دکمه ریست -->
-<div class="flex justify-center mt-6">
-  <button onclick="resetGame()" class="bg-red-500 text-white px-5 py-2 rounded-lg shadow hover:bg-red-600 transition">
-    شروع دوباره
-  </button>
-</div>
+    <div class="flex justify-center mt-6">
+      <button id="resetBtn" class="bg-red-500 text-white px-5 py-2 rounded-lg hover:bg-red-600 transition">شروع دوباره</button>
+    </div>
   </div>
 
 <script>
-const words = [
-  "باز کردن", "در", "یخچال", "و", "گذاشتن", "فیل", "داخل", "یخچال", "و", "!باز کردن", "در", "یخچال"
+const wordsSrc = [
+  "باز کردن","در","یخچال","و","گذاشتن","فیل","داخل","یخچال","و","!باز کردن","در","یخچال"
 ];
-
 const correctSentence = "باز کردن در یخچال و گذاشتن فیل داخل یخچال و !باز کردن در یخچال";
-let currentSentence = "";
-let usedCount = 0;
+
+let bankWords = [];
+let slots = [];
 
 const wordBank = document.getElementById("wordBank");
 const sentenceArea = document.getElementById("sentenceArea");
+const resultMsg = document.getElementById("resultMsg");
+document.getElementById("resetBtn").addEventListener("click", resetGame);
 
-function shuffleArray(array) {
-  return array.sort(() => Math.random() - 0.5);
-}
+function uid(){ return Math.random().toString(36).slice(2,10); }
+function shuffle(a){ return a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]); }
 
-function renderWords() {
-  wordBank.innerHTML = "";
-  shuffleArray(words).forEach(word => {
-    const btn = document.createElement("button");
-    btn.className = "bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium px-4 py-2 rounded-xl shadow transition";
-    btn.textContent = word;
-    btn.onclick = () => addWord(word, btn);
-    wordBank.appendChild(btn);
-  });
-}
-
-function addWord(word, element) {
-  currentSentence += (currentSentence ? " " : "") + word;
-  usedCount++;
-  sentenceArea.textContent = currentSentence;
-  element.style.display = "none";
-
-  if (usedCount === words.length) {
-    if (currentSentence === correctSentence) {
-      sentenceArea.className = "min-h-[70px] flex flex-wrap items-center justify-center border-2 border-green-500 bg-green-100 rounded-xl p-4 text-lg text-green-800 font-bold transition";
-    } else {
-      sentenceArea.className = "min-h-[70px] flex flex-wrap items-center justify-center border-2 border-red-500 bg-red-100 rounded-xl p-4 text-lg text-red-800 font-bold transition";
-    }
+function setSentenceStyle(state){
+  if(state==="ok"){
+    sentenceArea.className="area flex flex-wrap items-center justify-center border-2 border-green-500 bg-green-100 rounded-xl p-4 text-lg text-green-800 font-bold transition";
+    resultMsg.textContent="پاسخ شما صحیح می‌باشد";
+    resultMsg.className="text-center mt-3 font-bold text-lg text-green-600";
+  }else if(state==="bad"){
+    sentenceArea.className="area flex flex-wrap items-center justify-center border-2 border-red-500 bg-red-100 rounded-xl p-4 text-lg text-red-800 font-bold transition";
+    resultMsg.textContent="پاسخ نادرست می‌باشد";
+    resultMsg.className="text-center mt-3 font-bold text-lg text-red-600";
+  }else{
+    sentenceArea.className="area flex flex-wrap items-center justify-center rounded-xl p-4 text-lg text-gray-700 transition";
+    resultMsg.textContent="";
   }
 }
 
-function resetGame() {
-  currentSentence = "";
-  usedCount = 0;
-  sentenceArea.textContent = "";
-  sentenceArea.className = "min-h-[70px] flex flex-wrap items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-4 text-lg text-gray-700 transition";
-  renderWords();
+function allFilled(){ return slots.every(x=>x!==null); }
+function currentSentence(){ return slots.filter(Boolean).map(x=>x.text).join(" "); }
+function validate(){
+  if(!allFilled()){ setSentenceStyle(null); return; }
+  setSentenceStyle(currentSentence()===correctSentence? "ok":"bad");
 }
 
-renderWords();
+function renderBank(){
+  wordBank.innerHTML="";
+  wordBank.addEventListener("dragover", e=>{ e.preventDefault(); });
+  wordBank.addEventListener("drop", onDropToBank);
+
+  bankWords.forEach(w=>{
+    const b=document.createElement("button");
+    b.className="token bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium px-4 py-2 rounded-xl shadow transition";
+    b.textContent=w.text;
+    b.draggable=true;
+    b.dataset.origin="bank";
+    b.dataset.id=w.id;
+    b.addEventListener("dragstart", dragStart);
+    wordBank.appendChild(b);
+  });
+}
+
+function renderSlots(){
+  sentenceArea.innerHTML="";
+  slots.forEach((item, idx)=>{
+    const s=document.createElement("div");
+    s.className="slot"+(item?" filled":"");
+    s.dataset.index=idx;
+
+    s.addEventListener("dragover", e=>{ e.preventDefault(); s.classList.add("hover"); });
+    s.addEventListener("dragleave", ()=> s.classList.remove("hover"));
+    s.addEventListener("drop", e=>{ s.classList.remove("hover"); onDropToSlot(e, idx); });
+
+    if(item){
+      const t=document.createElement("span");
+      t.className="token bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-2 rounded-xl shadow-sm";
+      t.textContent=item.text;
+      t.draggable=true;
+      t.dataset.origin="slot";
+      t.dataset.slotIndex=idx;
+      t.dataset.id=item.id;
+      t.addEventListener("dragstart", dragStart);
+      s.appendChild(t);
+    }else{
+      const ph=document.createElement("span");
+      ph.className="text-gray-400 text-sm select-none";
+      ph.textContent="—";
+      s.appendChild(ph);
+    }
+    sentenceArea.appendChild(s);
+  });
+  validate();
+}
+
+function dragStart(e){
+  const payload={
+    origin: e.target.dataset.origin,
+    id: e.target.dataset.id || null,
+    slotIndex: e.target.dataset.slotIndex? Number(e.target.dataset.slotIndex) : null
+  };
+  e.dataTransfer.setData("text/plain", JSON.stringify(payload));
+  e.dataTransfer.effectAllowed="move";
+}
+
+function onDropToSlot(e, targetIdx){
+  e.preventDefault();
+  const data = safeParse(e.dataTransfer.getData("text/plain"));
+  if(!data) return;
+
+  if(data.origin==="bank"){
+    const fromIdx = bankWords.findIndex(w=>w.id===data.id);
+    if(fromIdx===-1) return;
+    const incoming = bankWords.splice(fromIdx,1)[0];
+    const outgoing = slots[targetIdx];
+    slots[targetIdx]=incoming;
+    if(outgoing) bankWords.push(outgoing);
+  }else if(data.origin==="slot"){
+    const from = Number(data.slotIndex);
+    if(Number.isNaN(from) || from===targetIdx) return;
+    const tmp = slots[targetIdx];
+    slots[targetIdx]=slots[from];
+    slots[from]=tmp;
+  }
+  renderBank(); renderSlots();
+}
+
+function onDropToBank(e){
+  e.preventDefault();
+  const data = safeParse(e.dataTransfer.getData("text/plain"));
+  if(!data || data.origin!=="slot") return;
+  const si = Number(data.slotIndex);
+  if(Number.isNaN(si)) return;
+  const item = slots[si];
+  if(!item) return;
+  slots[si]=null;
+  bankWords.push(item);
+  renderBank(); renderSlots();
+}
+
+function safeParse(s){ try{return JSON.parse(s)}catch{ return null }}
+
+function resetGame(){
+  const n = wordsSrc.length;
+  bankWords = shuffle(wordsSrc).map(text=>({id:uid(), text}));
+  slots = new Array(n).fill(null);
+  setSentenceStyle(null);
+  renderBank(); renderSlots();
+}
+
+resetGame();
 </script>
 </body>
 </html>

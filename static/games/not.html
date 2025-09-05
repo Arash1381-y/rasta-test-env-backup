@@ -109,15 +109,6 @@
       </div>
     </div>
 
-    <!-- Truth table box -->
-    <div class="box">
-      <div class="card">
-        <div class="card-head">جدول درستی</div>
-        <div class="card-body">
-          <div id="truth-table"></div>
-        </div>
-      </div>
-    </div>
 
     <!-- Circuit box -->
     <div class="box">
@@ -128,106 +119,133 @@
         </div>
       </div>
     </div>
+
+
+    <!-- Truth table box -->
+    <div class="box">
+      <div class="card">
+        <div class="card-head">جدول درستی</div>
+        <div class="card-body">
+          <div id="truth-table"></div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
 <script>
 /* shared state */
 let switchState = 0;
+
+/* fixed truth table: inputs locked; outputs toggle; results always shown */
 let table = [
-  { input: Math.floor(Math.random() * 2), output: Math.floor(Math.random() * 2) },
-  { input: Math.floor(Math.random() * 2), output: Math.floor(Math.random() * 2) }
+  { input: 0, output: 0 },
+  { input: 1, output: 0 }
 ];
 let results = [false, false];
-let checkButtonColor;
 
-/* Truth table sketch */
 (function setupTruthTable(){
   const sketch = function(p){
+    const W = 320, H = 450;
+    const startY = 120;
+    const rowGap = 60;
+    const cellW = 40, cellH = 40;
+    const colGap = 80;
+
+    const c1 = 100;              // input center
+    const c2 = c1 + colGap;      // output center
+    const c3 = c1 + 2*colGap;    // result center
+
     p.setup = function(){
-      p.createCanvas(320, 450);
+      p.createCanvas(W, H);
       p.textAlign(p.CENTER, p.CENTER);
       p.textSize(16);
       p.textFont('Vazir');
-      checkButtonColor = p.color(200, 200, 200);
     };
 
     p.draw = function(){
       p.clear();
       p.background(255);
 
-      const startX = 100;
-      const startY = 120;
-
+      // headers
       p.textSize(18);
       p.fill(0);
-      p.text("ورودی", startX, startY - 30);
-      p.text("خروجی", startX + 80, startY - 30);
-      p.text("نتیجه", startX + 160, startY - 30);
+      p.text("ورودی", c1, startY - 30);
+      p.text("خروجی", c2, startY - 30);
+      p.text("نتیجه",  c3, startY - 30);
 
+      // crisp column separators
+      const yTop = startY - 40;
+      const yBot = startY + (table.length-1)*rowGap + cellH + 10;
+      p.stroke(180); p.strokeWeight(1);
+      p.line(((c1+c2)/2)+0.5, yTop, ((c1+c2)/2)+0.5, yBot);
+      p.line(((c2+c3)/2)+0.5, yTop, ((c2+c3)/2)+0.5, yBot);
+
+      // rows
       for (let i = 0; i < table.length; i++) {
-        // input cell
-        p.fill(table[i].input ? p.color(50, 205, 50) : p.color(255, 99, 71));
-        p.rect(startX - 20, startY + i * 60, 40, 40, 10);
+        const y = startY + i * rowGap;
+
+        // input cell (locked)
+        p.noStroke();
+        p.fill(table[i].input ? p.color(46,204,113) : p.color(242,80,58));
+        p.rect(c1 - cellW/2, y, cellW, cellH, 10);
         p.fill(255);
         p.textSize(16);
-        p.text(table[i].input, startX, startY + i * 60 + 20);
+        p.text(table[i].input, c1, y + cellH/2);
 
-        // output cell
-        p.fill(table[i].output ? p.color(50, 205, 50) : p.color(255, 99, 71));
-        p.rect(startX + 60, startY + i * 60, 40, 40, 10);
+        // output cell (interactive look)
+        const outVal = table[i].output;
+        p.stroke(outVal ? p.color(46,204,113) : p.color(242,80,58));
+        p.strokeWeight(2);
         p.fill(255);
-        p.text(table[i].output, startX + 80, startY + i * 60 + 20);
+        p.rect(c2 - cellW/2, y, cellW, cellH, 10);
+        p.noStroke();
+        p.fill(0);
+        p.text(outVal, c2, y + cellH/2);
 
-        // result cell
+        p.fill(120); p.textSize(11);
+        p.text("کلیک کنید", c2, y + cellH + 12);
+
+        // result cell (instant)
+        results[i] = (table[i].input ^ table[i].output) === 1;
         p.textSize(22);
-        p.fill(results[i] ? p.color(50, 205, 50) : p.color(255, 99, 71));
-        p.text(results[i] ? "✅" : "❌", startX + 160, startY + i * 60 + 20);
+        p.fill(results[i] ? p.color(46,204,113) : p.color(242,80,58));
+        p.text(results[i] ? "✅" : "❌", c3, y + cellH/2);
       }
 
-      // check button
-      p.fill(checkButtonColor);
-      p.rect(startX + 1, 290, 120, 50, 15);
-      p.fill(255);
-      p.textSize(18);
-      p.text("بررسی", startX + 60, 315);
+      // overall status text under rows
+      const allValid =
+        (table[0].input === 0 && table[0].output === 1) &&
+        (table[1].input === 1 && table[1].output === 0);
+      p.textSize(16);
+      p.fill(allValid ? p.color(46,204,113) : p.color(242,80,58));
+      p.text(allValid ? "پاسخ درست است" : "پاسخ نادرست است", c2, 315);
     };
 
     p.mousePressed = function(){
-      const startX = 100;
-      const startY = 120;
-
+      // toggle outputs only
       for (let i = 0; i < table.length; i++) {
-        if (p.mouseX > startX - 20 && p.mouseX < startX + 20 &&
-            p.mouseY > startY + i * 60 && p.mouseY < startY + i * 60 + 40) {
-          table[i].input = 1 - table[i].input;
-        }
-        if (p.mouseX > startX + 60 && p.mouseX < startX + 100 &&
-            p.mouseY > startY + i * 60 && p.mouseY < startY + i * 60 + 40) {
+        const x0 = c2 - cellW/2;
+        const y0 = startY + i * rowGap;
+        if (p.mouseX > x0 && p.mouseX < x0 + cellW &&
+            p.mouseY > y0 && p.mouseY < y0 + cellH) {
           table[i].output = 1 - table[i].output;
         }
-      }
-
-      if (p.mouseX > startX + 20 && p.mouseX < startX + 140 &&
-          p.mouseY > 290 && p.mouseY < 340) {
-        const r1 = [table[0].input, table[0].output];
-        const r2 = [table[1].input, table[1].output];
-        const isValid =
-          (r1[0] === 0 && r1[1] === 1 && r2[0] === 1 && r2[1] === 0) ||
-          (r1[0] === 1 && r1[1] === 0 && r2[0] === 0 && r2[1] === 1);
-
-        results[0] = (r1[0] ^ r1[1]) === 1;
-        results[1] = (r2[0] ^ r2[1]) === 1;
-
-        checkButtonColor = isValid ? p.color(50, 205, 50) : p.color(255, 99, 71);
       }
     };
   };
   new p5(sketch, 'truth-table');
 })();
 
+
 /* Circuit sketch */
 (function setupCircuit(){
   const sketch = function(p){
+    const centerX = 160;
+    const centerY = 200;
+    const w = 150;
+    const h = 90;
+
     let switchOn = false;
 
     p.setup = function(){
@@ -245,23 +263,28 @@ let checkButtonColor;
     };
 
     function drawCircuit(){
-      const centerX = 160;
-      const centerY = 225;
-      const w = 150;
-      const h = 90;
-
       // wires
       p.stroke(0); p.strokeWeight(3); p.noFill();
       p.line(centerX - w/2, centerY - h/2, centerX + w/2, centerY - h/2);           // top
       p.line(centerX + w/2, centerY - h/2, centerX + w/2, centerY + h/2);           // right
-      p.line(centerX + w/2, centerY + h/2, centerX + 15, centerY + h/2);            // bottom right
-      p.line(centerX - 15, centerY + h/2, centerX - w/2, centerY + h/2);            // bottom left
+      p.line(centerX + w/2, centerY + h/2, centerX - w/2, centerY + h/2);           // bottom
       p.line(centerX - w/2, centerY + h/2, centerX - w/2, centerY - h/2);           // left
+
+      const switchLen = 30
+
+      p.line(centerX + w * 1 / 4, centerY + switchLen / 2,
+             centerX + w * 1 / 4, centerY + h/2);            // right up
+
+      p.line(centerX + w * 1 / 4, centerY - h/2,
+             centerX + w * 1 / 4, centerY - switchLen / 2);  // right down
+
+
 
       drawBattery(centerX - w/2, centerY);
       drawResistor(centerX, centerY - h/2);
       drawBulb(centerX + w/2, centerY);
-      drawSwitch(centerX, centerY + h/2);
+      // drawSwitch(centerX, centerY + h/2);
+      drawSwitch2(centerX + w * 1 / 4, centerY, switchLen)
     }
 
     function drawBattery(x, y){
@@ -288,11 +311,11 @@ let checkButtonColor;
     function drawBulb(x, y){
       p.push(); p.translate(x, y);
       p.stroke(0); p.strokeWeight(2);
-      p.fill(switchOn ? p.color(255,255,0) : 255);
+      p.fill(!switchOn ? p.color(255,255,0) : 255);
       p.ellipse(0, 0, 30, 30);
-      p.stroke(switchOn ? p.color(255,150,0) : 0); p.strokeWeight(switchOn ? 2 : 1);
+      p.stroke(!switchOn ? p.color(255,150,0) : 0); p.strokeWeight(!switchOn ? 2 : 1);
       p.line(-6,-6,6,6); p.line(-6,6,6,-6);
-      p.noStroke(); p.fill(0); p.textSize(10); p.text('لامپ', 20, 0);
+      p.noStroke(); p.fill(0); p.textSize(10); p.text('لامپ', 35, 0);
       p.pop();
     }
 
@@ -312,9 +335,32 @@ let checkButtonColor;
       p.pop();
     }
 
+
+    function drawSwitch2(x, y, swLen) {
+      p.push(); p.translate(x, y);
+      p.stroke(0); p.strokeWeight(3); p.fill(0);
+      p.ellipse(0, swLen / 2, 5, 5); p.ellipse(0, -1 * swLen / 2, 5, 5);
+
+      if (switchOn) {
+        p.stroke(0,150,0); p.strokeWeight(4); p.line(0, -swLen / 2, 0, swLen / 2);
+      } else {
+        p.stroke(255,0,0); p.strokeWeight(3); p.line(0, 1 * swLen / 2, 10, -1 * swLen / 2);
+      }
+
+      p.noStroke(); p.fill(0); p.textSize(10); p.text('سویچ', -20, 0);
+      p.text(switchOn ? 'بسته' : 'باز', -20, 12);
+      p.pop();
+    }
+
+      // const switchX = centerX + w * 1 / 4;
+      // const switchY = centerY;
+      // p.stroke(0); p.strokeWeight(3); p.fill(0);
+      // p.ellipse(switchX, switchY, 20, 20);
+
     p.mousePressed = function(){
-      const switchX = 160;
-      const switchY = 225 + 45;
+      const switchX = centerX + w * 1 / 4;
+      const switchY = centerY;
+
       const d = p.dist(p.mouseX, p.mouseY, switchX, switchY);
       if (d < 20) {
         switchOn = !switchOn;
