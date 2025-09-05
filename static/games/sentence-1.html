@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
@@ -35,11 +36,14 @@
   </div>
 
 <script>
-const words = [
-  "باز کردن", "در", "یخچال", "و", "گذاشتن", "فیل", "داخل", "یخچال", "و", "!باز کردن", "در", "یخچال"
-];
 
-const correctSentence = "باز کردن در یخچال و گذاشتن فیل داخل یخچال و !باز کردن در یخچال";
+// const correctSentence = "باز کردن در یخچال و گذاشتن فیل داخل یخچال و !باز کردن در یخچال";
+const correctSentence =  "( باز کردن در یخچال و گذاشتن زرافه داخل یخچال و بستن در یخچال ) یا ( باز کردن در یخچال و !گذاشتن فیل داخل یخچال و گذاشتن زرافه داخل یخچال و بستن در یخچال )"
+
+let words = correctSentence.split(" ");
+console.log(words)
+
+
 let currentSentence = "";
 let usedCount = 0;
 
