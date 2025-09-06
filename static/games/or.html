@@ -139,29 +139,10 @@
     </style>
   </head>
   <body>
-    <div class="wrap">
-      <!-- Truth table -->
-      <div class="box">
-        <div class="card">
-          <div class="card-head">جدول درستی گیت OR</div>
-          <div class="card-body">
-            <div id="truth-table" style="width: 100%; height: 100%"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Circuit -->
-      <div class="box">
-        <div class="card">
-          <div class="card-head">مدار تعاملی</div>
-          <div class="card-body">
-            <div id="circuit" style="width: 100%; height: 100%"></div>
-          </div>
-        </div>
-      </div>
+    <div class="wrap" dir="ltr">
 
       <!-- Schematic -->
-      <div class="box">
+      <div class="box" dir="rtl">
         <div class="card">
           <div class="card-head">شماتیک گیت OR</div>
           <div class="card-body">
@@ -171,6 +152,28 @@
           </div>
         </div>
       </div>
+
+      <!-- Circuit -->
+      <div class="box" dir="rtl">
+        <div class="card">
+          <div class="card-head">مدار تعاملی</div>
+          <div class="card-body">
+            <div id="circuit" style="width: 100%; height: 100%"></div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- Truth table -->
+      <div class="box" dir="rtl">
+        <div class="card">
+          <div class="card-head">جدول درستی گیت OR</div>
+          <div class="card-body">
+            <div id="truth-table" style="width: 100%; height: 100%"></div>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <script>

@@ -143,19 +143,22 @@
     </style>
   </head>
   <body>
-    <div class="wrap">
-      <!-- Truth table -->
-      <div class="box">
+    <div class="wrap" dir="ltr">
+      <!-- Schematic -->
+      <div class="box" dir="rtl">
         <div class="card">
-          <div class="card-head">جدول درستی گیت AND</div>
+          <div class="card-head">شماتیک گیت AND</div>
           <div class="card-body">
-            <div id="truth-table" style="width: 100%; height: 100%"></div>
+            <div class="schematic-inner">
+              <!-- Replace with your image path -->
+              <img class="schematic-img" src="AND.png" alt="AND Gate" />
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Circuit -->
-      <div class="box">
+      <div class="box" dir="rtl">
         <div class="card">
           <div class="card-head">مدار تعاملی</div>
           <div class="card-body">
@@ -164,15 +167,12 @@
         </div>
       </div>
 
-      <!-- Schematic -->
-      <div class="box">
+      <!-- Truth table -->
+      <div class="box" dir="rtl">
         <div class="card">
-          <div class="card-head">شماتیک گیت AND</div>
+          <div class="card-head">جدول درستی گیت AND</div>
           <div class="card-body">
-            <div class="schematic-inner">
-              <!-- Replace with your image path -->
-              <img class="schematic-img" src="AND.png" alt="AND Gate" />
-            </div>
+            <div id="truth-table" style="width: 100%; height: 100%"></div>
           </div>
         </div>
       </div>
@@ -508,7 +508,7 @@
             p.pop();
           }
 
-          function handlePress (p) {
+          function handlePress(p) {
             // unscale for hit test
             const mx = (p.mouseX - view.ox) / view.s;
             const my = (p.mouseY - view.oy) / view.s;
@@ -523,7 +523,7 @@
             if (d2 < 20) switch2On = !switch2On;
 
             switchState = switch1On && switch2On ? 1 : 0;
-          };
+          }
 
           p.touchStarted = function () {
             handlePress(p);
