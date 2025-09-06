@@ -29,11 +29,21 @@
     .h2 .power{ color: var(--c2); }
     .h3 .power{ color: var(--c3); }
 
-    /* SVG sizing: keep all four visible on one row */
+    /* SVG sizing: keep all four visible on one row
     svg.hand{width:auto;height:clamp(170px,26vh,320px);stroke-width:3.5;background:#fff;border-radius:8px}
+    */
+    svg.hand{
+      inline-size:clamp(90px, 22vw, 180px);
+      block-size:auto;
+      aspect-ratio:239/360;
+      border-radius: 8px;
+      stroke-width: 3.5px;
+      background:#fff
+    }
 
     .finger{cursor:pointer}
-    .finger.disabled{cursor:not-allowed; opacity:.5}
+    /* .finger.disabled{cursor:not-allowed; opacity:.5} */
+    .finger.disabled{opacity:.5}
     /* Show extended when true, closed otherwise */
     .isExtended :nth-child(1){opacity:0}
     .isClosed   :nth-child(2){opacity:0}
@@ -162,9 +172,8 @@
         grp.appendChild(el('path', { d: closedP }));
         grp.appendChild(el('path', { d: extP }));
         const isIndex = name === 'index';
-        if (isIndex) {
           grp.addEventListener('pointerdown', () => toggleIndex(handIndex));
-        } else {
+        if (!isIndex) {
           grp.classList.add('disabled');
         }
         const ext = isIndex ? state.hands[handIndex].fingers.index.extended : true;
