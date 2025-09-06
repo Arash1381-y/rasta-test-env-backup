@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fa" dir="rtl">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -15,6 +15,7 @@
 
       /* Base = small screens (stack + shrink) */
       :root {
+        font-family: "Vazir";
         --box-w: clamp(220px, 90vw, 300px);
         --box-h: clamp(300px, 70vh, 400px);
         --radius: 14px;
@@ -137,9 +138,10 @@
     </style>
   </head>
   <body>
-    <div class="wrap">
+    <div class="wrap" dir="ltr">
+
       <!-- Schematic box (DOM image, no p5 loadImage) -->
-      <div class="box">
+      <div class="box" dir="rtl">
         <div class="card">
           <div class="card-head">شماتیک گیت NOT</div>
           <div class="card-body">
@@ -150,8 +152,9 @@
         </div>
       </div>
 
+
       <!-- Circuit box -->
-      <div class="box">
+      <div class="box" dir="rtl">
         <div class="card">
           <div class="card-head">مدار تعاملی</div>
           <div class="card-body">
@@ -160,8 +163,9 @@
         </div>
       </div>
 
+
       <!-- Truth table box -->
-      <div class="box">
+      <div class="box" dir="rtl">
         <div class="card">
           <div class="card-head">جدول درستی</div>
           <div class="card-body">
@@ -169,6 +173,10 @@
           </div>
         </div>
       </div>
+
+
+
+
     </div>
 
     <script>
