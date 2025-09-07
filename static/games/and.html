@@ -13,7 +13,6 @@
         font-display: swap;
       }
 
-      /* Fluid type scale */
       :root {
         --fs-base: clamp(13px, 0.9vw + 0.25rem, 18px);
         --fs-sm: calc(var(--fs-base) * 0.875);
@@ -26,11 +25,38 @@
         --radius: 14px;
         --shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
       }
+      @media (min-width: 300px) {
+        :root {
+          --box-w: 200px;
+          --box-h: 250px;
+          --fs-base: 9px;
+        }
+      }
+      @media (min-width: 640px) {
+        :root {
+          --box-w: 280px;
+          --box-h: 420px;
+        }
+      }
+      @media (min-width: 768px) {
+        :root {
+          --box-w: 320px;
+          --box-h: 450px;
+        }
+      }
+      @media (min-width: 1024px) {
+        :root {
+          --box-w: 340px;
+          --box-h: 480px;
+        }
+      }
 
-      @media (min-width:300px){ :root{ --box-w:200px; --box-h:250px; --fs-base:9px } }
-      @media (min-width:640px){ :root{ --box-w:280px; --box-h:420px; } }
-      @media (min-width:768px){ :root{ --box-w:320px; --box-h:450px; } }
-      @media (min-width:1024px){ :root{ --box-w:340px; --box-h:480px; } }
+      /* Bigger circuit on small screens */
+      @media (max-width: 480px) {
+        .card--circuit {
+          height: calc(var(--box-h) + 140px);
+        }
+      }
 
       html,
       body {
@@ -56,7 +82,6 @@
         align-items: center;
         justify-content: center;
         flex-wrap: wrap;
-        /* padding: 10px; */
       }
       @media (min-width: 300px) {
         .wrap {
@@ -73,7 +98,6 @@
         justify-content: center;
         min-width: 0;
       }
-
       .card {
         width: var(--box-w);
         height: var(--box-h);
@@ -85,14 +109,12 @@
         overflow: hidden;
         margin: 0 2px;
       }
-
       .card-head {
         padding: 10px 14px;
         text-align: center;
         font-size: var(--fs-lg);
         border-bottom: 1px solid #eee;
       }
-
       .card-body {
         flex: 1;
         display: flex;
@@ -101,7 +123,6 @@
         padding: 10px;
       }
 
-      /* schematic */
       .schematic-inner {
         width: 100%;
         height: 100%;
@@ -118,7 +139,6 @@
         display: block;
       }
 
-      /* p5 canvases fill their card body */
       canvas {
         display: block;
         width: 100%;
@@ -135,7 +155,6 @@
           <div class="card-head">شماتیک گیت AND</div>
           <div class="card-body">
             <div class="schematic-inner">
-              <!-- Replace with your image path -->
               <img class="schematic-img" src="AND.png" alt="AND Gate" />
             </div>
           </div>
@@ -144,7 +163,7 @@
 
       <!-- Circuit -->
       <div class="box" dir="rtl">
-        <div class="card">
+        <div class="card card--circuit">
           <div class="card-head">مدار تعاملی</div>
           <div class="card-body">
             <div id="circuit" style="width: 100%; height: 100%"></div>
@@ -165,19 +184,19 @@
 
     <script>
       // ====== shared state ======
-      let switchState = 0;
+      // Current inputs driven by the circuit switches
+      const inputs = { i1: 0, i2: 0 };
 
       // Truth table rows for AND; user toggles the output column
-      let table = [
+      const table = [
         { i1: 0, i2: 0, o: 1 },
         { i1: 0, i2: 1, o: 0 },
         { i1: 1, i2: 0, o: 1 },
         { i1: 1, i2: 1, o: 0 },
       ];
-      let results = [false, false, false, false];
+      const results = [false, false, false, false];
 
-      // ====== responsive canvas helper ======
-      function fitToParentCanvas(p, parentId, baseW = 320, baseH = 450) {
+      function fitToParentCanvas(p, parentId, baseW = 320, baseH = 450, isCircuit = false) {
         const el = document.getElementById(parentId);
         const r = el.getBoundingClientRect();
         const w = Math.max(10, Math.floor(r.width));
@@ -185,9 +204,10 @@
         if (p._renderer) p.resizeCanvas(w, h);
         const sx = w / baseW,
           sy = h / baseH;
-        const s = Math.min(sx, sy);
-        const ox = (w - baseW * s) / 2;
-        const oy = (h - baseH * s) / 2;
+        let s = Math.min(sx, sy);
+        if (isCircuit) s *= 1.4
+        const ox = (w - baseW * s) / 2,
+          oy = (h - baseH * s) / 2;
         return { s, ox, oy, w, h, baseW, baseH };
       }
 
@@ -198,7 +218,6 @@
             BASE_H = 450;
           let view = { s: 1, ox: 0, oy: 0 };
 
-          // logical layout
           const startY = 60,
             rowGap = 60,
             cellW = 40,
@@ -220,6 +239,15 @@
           p.windowResized = function () {
             view = fitToParentCanvas(p, "truth-table", BASE_W, BASE_H);
           };
+
+          function highlightedIndex() {
+            // find the row whose inputs match the circuit inputs
+            for (let i = 0; i < table.length; i++) {
+              if (table[i].i1 === inputs.i1 && table[i].i2 === inputs.i2)
+                return i;
+            }
+            return -1;
+          }
 
           p.draw = function () {
             view = fitToParentCanvas(p, "truth-table", BASE_W, BASE_H);
@@ -247,8 +275,51 @@
             p.line((c2 + c3) / 2, yTop, (c2 + c3) / 2, yBot);
             p.line((c3 + c4) / 2, yTop, (c3 + c4) / 2, yBot);
 
+            const hi = highlightedIndex();
+
             for (let i = 0; i < table.length; i++) {
               const y = startY + i * rowGap;
+              const canEdit = i === hi;
+              const dim = !canEdit;
+
+              // highlight row background + animated border (unchanged)
+              if (canEdit) {
+                const x = c1 - 32,
+                  w = c4,
+                  h = cellH + 16,
+                  r = 10;
+
+                // behind content
+                p.push();
+                const ctx = p.drawingContext;
+                ctx.save();
+                ctx.globalCompositeOperation = "destination-over";
+                p.noStroke();
+                p.fill(255, 245, 180, 140);
+                p.rect(x, y - 8, w, h, r);
+                ctx.restore();
+                p.pop();
+
+                // animated dotted border
+                p.push();
+                const dash = 6,
+                  gap = 6;
+                p.noFill();
+                p.stroke(255, 200, 0);
+                p.strokeWeight(2);
+                p.drawingContext.setLineDash([dash, gap]);
+                p.drawingContext.lineDashOffset = -(
+                  p.frameCount %
+                  (dash + gap)
+                );
+                p.rect(x, y - 8, w, h, r);
+                p.drawingContext.setLineDash([]);
+                p.pop();
+              }
+
+              // dim non-highlighted content
+              p.push();
+              if (dim) p.drawingContext.globalAlpha = 0.38;
 
               // input1
               p.noStroke();
@@ -256,7 +327,7 @@
                 table[i].i1 ? p.color(46, 204, 113) : p.color(242, 80, 58)
               );
               p.rect(c1 - cellW / 2, y, cellW, cellH, 10);
-              p.fill(255);
+              p.fill(dim ? 90 : 255);
               p.textSize(16);
               p.text(table[i].i1, c1, y + cellH / 2);
 
@@ -266,25 +337,35 @@
                 table[i].i2 ? p.color(46, 204, 113) : p.color(242, 80, 58)
               );
               p.rect(c2 - cellW / 2, y, cellW, cellH, 10);
-              p.fill(255);
+              p.fill(dim ? 90 : 255);
               p.text(table[i].i2, c2, y + cellH / 2);
 
-              // output (toggle)
+              // output (toggleable only on highlighted row)
               const outVal = table[i].o;
               p.stroke(outVal ? p.color(46, 204, 113) : p.color(242, 80, 58));
-              p.strokeWeight(2);
-              p.fill(255);
+              p.strokeWeight(canEdit ? 3 : 1.5);
+              if (dim) p.stroke(170);
+              p.fill(canEdit ? 255 : 232); // light gray when disabled
               p.rect(c3 - cellW / 2, y, cellW, cellH, 10);
+
               p.noStroke();
-              p.fill(0);
+              p.fill(dim ? 80 : 0); // gray text when disabled
               p.text(outVal, c3, y + cellH / 2);
 
               // result
               const expected = table[i].i1 & table[i].i2;
               results[i] = outVal === expected;
               p.textSize(22);
-              p.fill(results[i] ? p.color(46, 204, 113) : p.color(242, 80, 58));
+              if (dim) {
+                p.fill(150);
+              } else {
+                p.fill(
+                  results[i] ? p.color(46, 204, 113) : p.color(242, 80, 58)
+                );
+              }
               p.text(results[i] ? "✅" : "❌", c4, y + cellH / 2);
+
+              p.pop();
             }
 
             const allValid =
@@ -304,16 +385,23 @@
           };
 
           p.mousePressed = function () {
-            // unscale mouse to logical coords
             const mx = (p.mouseX - view.ox) / view.s;
             const my = (p.mouseY - view.oy) / view.s;
 
-            for (let i = 0; i < table.length; i++) {
-              const x0 = c3 - cellW / 2;
-              const y0 = startY + i * rowGap;
-              if (mx > x0 && mx < x0 + cellW && my > y0 && my < y0 + cellH) {
-                table[i].o = 1 - table[i].o;
+            const hi = (function () {
+              for (let i = 0; i < table.length; i++) {
+                if (table[i].i1 === inputs.i1 && table[i].i2 === inputs.i2)
+                  return i;
               }
+              return -1;
+            })();
+
+            if (hi < 0) return;
+
+            const x0 = c3 - cellW / 2;
+            const y0 = startY + hi * 60; // rowGap = 60
+            if (mx > x0 && mx < x0 + cellW && my > y0 && my < y0 + cellH) {
+              table[hi].o = 1 - table[hi].o; // toggle only highlighted row
             }
           };
         };
@@ -340,28 +428,25 @@
           };
 
           p.windowResized = function () {
-            view = fitToParentCanvas(p, "circuit", BASE_W, BASE_H);
+            view = fitToParentCanvas(p, "circuit", BASE_W, BASE_H, true);
           };
 
           p.draw = function () {
-            view = fitToParentCanvas(p, "circuit", BASE_W, BASE_H);
+            view = fitToParentCanvas(p, "circuit", BASE_W, BASE_H, true);
             p.clear();
             p.background(255);
-
             p.push();
             p.translate(view.ox, view.oy);
             p.scale(view.s);
-
             drawCircuit();
-
             p.pop();
           };
 
           function drawCircuit() {
-            const centerX = 160;
-            const centerY = 200;
-            const w = 150;
-            const h = 90;
+            const centerX = 160,
+              centerY = 200,
+              w = 150,
+              h = 90;
 
             p.stroke(0);
             p.strokeWeight(3);
@@ -371,37 +456,37 @@
               centerY - h / 2,
               centerX + w / 2,
               centerY - h / 2
-            ); // top
+            );
             p.line(
               centerX + w / 2,
               centerY - h / 2,
               centerX + w / 2,
               centerY + h / 2
-            ); // right
+            );
             p.line(
               centerX + w / 2,
               centerY + h / 2,
               centerX + 45,
               centerY + h / 2
-            ); // bottom right
+            );
             p.line(
               centerX + 15,
               centerY + h / 2,
               centerX - 15,
               centerY + h / 2
-            ); // gap for switches
+            );
             p.line(
               centerX - 45,
               centerY + h / 2,
               centerX - w / 2,
               centerY + h / 2
-            ); // bottom left
+            );
             p.line(
               centerX - w / 2,
               centerY + h / 2,
               centerX - w / 2,
               centerY - h / 2
-            ); // left
+            );
 
             drawBattery(centerX - w / 2, centerY);
             drawResistor(centerX, centerY - h / 2);
@@ -493,8 +578,7 @@
             p.pop();
           }
 
-          function handlePress(p) {
-            // unscale for hit test
+          function handlePress() {
             const mx = (p.mouseX - view.ox) / view.s;
             const my = (p.mouseY - view.oy) / view.s;
 
@@ -507,23 +591,24 @@
             if (d1 < 20) switch1On = !switch1On;
             if (d2 < 20) switch2On = !switch2On;
 
-            switchState = switch1On && switch2On ? 1 : 0;
+            // update shared inputs for the table highlight
+            inputs.i1 = switch1On ? 1 : 0;
+            inputs.i2 = switch2On ? 1 : 0;
           }
 
-          p.touchStarted = function () {
-            handlePress(p);
-            handledTouch = true; // suppress the follow-up mousePressed
-            return false; // prevent default scrolling/click synthesis
-          };
+          let handledTouch = false;
 
+          p.touchStarted = function () {
+            handlePress();
+            handledTouch = true;
+            return false;
+          };
           p.touchEnded = function () {
-            // allow next interaction
             handledTouch = false;
           };
-
           p.mousePressed = function () {
-            if (handledTouch || p.touches.length) return; // ignore duplicate from touch
-            handlePress(p);
+            if (handledTouch || p.touches.length) return;
+            handlePress();
           };
         };
         new p5(sketch, "circuit");
