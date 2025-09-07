@@ -13,16 +13,20 @@
         font-display: swap;
       }
 
-      /* Fluid type scale + box sizes */
+      /* Fluid type scale */
       :root {
         --fs-base: clamp(13px, 0.9vw + 0.25rem, 18px);
+        --fs-sm: calc(var(--fs-base) * 0.875);
+        --fs-md: var(--fs-base);
         --fs-lg: calc(var(--fs-base) * 1.125);
+        --fs-xl: calc(var(--fs-base) * 1.35);
 
         --box-w: clamp(220px, 90vw, 300px);
         --box-h: clamp(300px, 70vh, 400px);
         --radius: 14px;
         --shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
       }
+
       @media (min-width: 640px) {
         :root {
           --box-w: 280px;
@@ -61,19 +65,18 @@
       .wrap {
         display: flex;
         flex-direction: column;
-        gap: 16px;
         width: 100%;
         max-width: 1100px;
         align-items: center;
         justify-content: center;
         flex-wrap: wrap;
-        padding: 10px;
+        /* padding: 10px; */
       }
-      @media (min-width: 768px) {
+      @media (min-width: 600px) {
         .wrap {
           flex-direction: row;
           flex-wrap: nowrap;
-          gap: 20px;
+          gap: 10px;
         }
       }
 
@@ -129,7 +132,7 @@
         display: block;
       }
 
-      /* p5 canvases fill card */
+      /* p5 canvases fill their card body */
       canvas {
         display: block;
         width: 100%;
@@ -140,7 +143,6 @@
   </head>
   <body>
     <div class="wrap" dir="ltr">
-
       <!-- Schematic -->
       <div class="box" dir="rtl">
         <div class="card">
@@ -163,7 +165,6 @@
         </div>
       </div>
 
-
       <!-- Truth table -->
       <div class="box" dir="rtl">
         <div class="card">
@@ -173,7 +174,6 @@
           </div>
         </div>
       </div>
-
     </div>
 
     <script>
