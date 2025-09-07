@@ -8,11 +8,12 @@
     <style>
       @font-face {
         font-family: "Vazir";
-        src: url("https://cdn.fontcdn.ir/Font/Persian/Vazir/Vazir.woff") format("woff");
+        src: url("https://cdn.fontcdn.ir/Font/Persian/Vazir/Vazir.woff")
+          format("woff");
         font-display: swap;
       }
 
-      :root{
+      :root {
         --fs-base: clamp(13px, 0.9vw + 0.25rem, 18px);
         --fs-sm: calc(var(--fs-base) * 0.875);
         --fs-md: var(--fs-base);
@@ -22,39 +23,125 @@
         --box-w: clamp(220px, 90vw, 300px);
         --box-h: clamp(300px, 70vh, 400px);
         --radius: 14px;
-        --shadow: 0 2px 10px rgba(0,0,0,.12);
+        --shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
       }
 
-      @media (min-width:300px){ :root{ --box-w:200px; --box-h:250px; --fs-base:9px } }
-      @media (min-width:640px){ :root{ --box-w:280px; --box-h:420px; } }
-      @media (min-width:768px){ :root{ --box-w:320px; --box-h:450px; } }
-      @media (min-width:1024px){ :root{ --box-w:340px; --box-h:480px; } }
-
-      html,body{height:100%}
-      body{
-        margin:0; background:#fff; font-family:Vazir,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-        font-size:var(--fs-base); display:flex; align-items:center; justify-content:center; overflow-x:hidden;
+      @media (min-width: 300px) {
+        :root {
+          --box-w: 200px;
+          --box-h: 250px;
+          --fs-base: 9px;
+        }
+      }
+      @media (min-width: 640px) {
+        :root {
+          --box-w: 280px;
+          --box-h: 420px;
+          --fs-base: 12px;
+        }
+      }
+      @media (min-width: 768px) {
+        :root {
+          --box-w: 320px;
+          --box-h: 450px;
+          --fs-base: 14px;
+        }
+      }
+      @media (min-width: 1024px) {
+        :root {
+          --box-w: 340px;
+          --box-h: 480px;
+          --fs-base: 16px;
+        }
       }
 
-      .wrap{
-        display:flex; flex-direction:column; width:100%; max-width:1100px; align-items:center; justify-content:center; flex-wrap:wrap;
+      html,
+      body {
+        height: 100%;
       }
-      @media (min-width:300px){
-        .wrap{ flex-direction:row; flex-wrap:nowrap; gap:10px; }
+      body {
+        margin: 0;
+        background: #fff;
+        font-family: Vazir, system-ui, -apple-system, Segoe UI, Roboto,
+          Helvetica, Arial, sans-serif;
+        font-size: var(--fs-base);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow-x: hidden;
       }
 
-      .box{ flex:1 1 auto; display:flex; align-items:center; justify-content:center; min-width:0; }
-      .card{
-        width:var(--box-w); height:var(--box-h); background:#fff; border-radius:var(--radius); box-shadow:var(--shadow);
-        display:flex; flex-direction:column; overflow:hidden; margin:0 2px;
+      .wrap {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        max-width: 1100px;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
       }
-      .card-head{ padding:10px 14px; text-align:center; font-size:var(--fs-lg); border-bottom:1px solid #eee; }
-      .card-body{ flex:1; display:flex; align-items:center; justify-content:center; padding:10px; }
+      @media (min-width: 300px) {
+        .wrap {
+          flex-direction: row;
+          flex-wrap: nowrap;
+          gap: 10px;
+        }
+      }
 
-      .schematic-inner{ width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; }
-      .schematic-img{ width:calc(var(--box-w)*0.75); max-width:90%; height:auto; display:block; }
+      .box {
+        flex: 1 1 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 0;
+      }
+      .card {
+        width: var(--box-w);
+        height: var(--box-h);
+        background: #fff;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        margin: 0 2px;
+      }
+      .card-head {
+        padding: 10px 14px;
+        text-align: center;
+        font-size: var(--fs-lg);
+        border-bottom: 1px solid #eee;
+      }
+      .card-body {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px;
+      }
 
-      canvas{ display:block; width:100%; height:100%; border-radius:0; }
+      .schematic-inner {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+      }
+      .schematic-img {
+        width: calc(var(--box-w) * 0.75);
+        max-width: 90%;
+        height: auto;
+        display: block;
+      }
+
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        border-radius: 0;
+      }
     </style>
   </head>
   <body>
@@ -76,7 +163,7 @@
         <div class="card">
           <div class="card-head">مدار تعاملی</div>
           <div class="card-body">
-            <div id="circuit" style="width:100%; height:100%"></div>
+            <div id="circuit" style="width: 100%; height: 100%"></div>
           </div>
         </div>
       </div>
@@ -86,108 +173,206 @@
         <div class="card">
           <div class="card-head">جدول درستی</div>
           <div class="card-body">
-            <div id="truth-table" style="width:100%; height:100%"></div>
+            <div id="truth-table" style="width: 100%; height: 100%"></div>
           </div>
         </div>
       </div>
     </div>
 
     <script>
-      // Shared helper used by AND/OR
-      function fitToParentCanvas(p, parentId, baseW=320, baseH=450){
+      // inputs
+      const inputs = { input: 0 };
+      // truth table
+      const table = [
+        { input: 0, output: 1 },
+        { input: 1, output: 1 },
+      ];
+      let results = [false, false];
+
+      // scaling p5 canvas
+      function fitToParentCanvas(p, parentId, baseW = 320, baseH = 450, isCircuit = false) {
         const el = document.getElementById(parentId);
         const r = el.getBoundingClientRect();
         const w = Math.max(10, Math.floor(r.width));
         const h = Math.max(10, Math.floor(r.height));
         if (p._renderer) p.resizeCanvas(w, h);
-        const sx = w / baseW, sy = h / baseH;
-        const s = Math.min(sx, sy);
-        const ox = (w - baseW*s)/2, oy = (h - baseH*s)/2;
+        const sx = w / baseW,
+          sy = h / baseH;
+        let s = Math.min(sx, sy);
+        if (isCircuit) s *= 1.283
+        const ox = (w - baseW * s) / 2,
+          oy = (h - baseH * s) / 2;
         return { s, ox, oy, w, h, baseW, baseH };
       }
 
-      // ----- Truth table state -----
-      let table = [
-        { input: 0, output: 0 },
-        { input: 1, output: 0 },
-      ];
-      let results = [false, false];
+      function highlightedIndex() {
+        // find the row whose inputs match the circuit inputs
+        for (let i = 0; i < table.length; i++) {
+          if (table[i].input === inputs.input)
+            return i;
+        }
+        return -1;
+      }
 
       // ===== Truth table (responsive) =====
-      (function setupTruthTable(){
-        const sketch = function(p){
-          const BASE_W=320, BASE_H=450;
-          let view = { s:1, ox:0, oy:0 };
+      (function setupTruthTable() {
+        const sketch = function (p) {
+          const BASE_W = 320,
+            BASE_H = 450;
+          let view = { s: 1, ox: 0, oy: 0 };
 
-          const startY=100, rowGap=60, cellW=40, cellH=40, colGap=80;
-          const c1=75, c2=c1+colGap, c3=c1+2*colGap;
+          const startY = 100,
+            rowGap = 60,
+            cellW = 40,
+            cellH = 40,
+            colGap = 80;
+          const c1 = 75,
+            c2 = c1 + colGap,
+            c3 = c1 + 2 * colGap;
 
-          p.setup = function(){
-            const r = document.getElementById("truth-table").getBoundingClientRect();
-            p.createCanvas(r.width||BASE_W, r.height||BASE_H);
+          p.setup = function () {
+            const r = document
+              .getElementById("truth-table")
+              .getBoundingClientRect();
+            p.createCanvas(r.width || BASE_W, r.height || BASE_H);
             p.textAlign(p.CENTER, p.CENTER);
             p.textFont("Vazir");
           };
 
-          p.windowResized = function(){
+          p.windowResized = function () {
             view = fitToParentCanvas(p, "truth-table", BASE_W, BASE_H);
           };
 
-          p.draw = function(){
+          p.draw = function () {
             view = fitToParentCanvas(p, "truth-table", BASE_W, BASE_H);
-            p.clear(); p.background(255);
+            p.clear();
+            p.background(255);
 
-            p.push(); p.translate(view.ox, view.oy); p.scale(view.s);
+            p.push();
+            p.translate(view.ox, view.oy);
+            p.scale(view.s);
 
-            p.textSize(18); p.fill(0);
-            p.text("ورودی", c1, startY-30);
-            p.text("خروجی", c2, startY-30);
-            p.text("نتیجه", c3, startY-30);
+            p.textSize(18);
+            p.fill(0);
+            p.text("ورودی", c1, startY - 30);
+            p.text("خروجی", c2, startY - 30);
+            p.text("نتیجه", c3, startY - 30);
 
-            const yTop=startY-40, yBot=startY+(table.length-1)*rowGap+cellH+10;
-            p.stroke(180); p.strokeWeight(1);
-            p.line((c1+c2)/2+0.5, yTop, (c1+c2)/2+0.5, yBot);
-            p.line((c2+c3)/2+0.5, yTop, (c2+c3)/2+0.5, yBot);
+            const yTop = startY - 40,
+              yBot = startY + (table.length - 1) * rowGap + cellH + 10;
+            p.stroke(180);
+            p.strokeWeight(1);
+            p.line((c1 + c2) / 2 + 0.5, yTop, (c1 + c2) / 2 + 0.5, yBot);
+            p.line((c2 + c3) / 2 + 0.5, yTop, (c2 + c3) / 2 + 0.5, yBot);
 
-            for(let i=0;i<table.length;i++){
-              const y=startY + i*rowGap;
+            const hi = highlightedIndex();
+            for (let i = 0; i < table.length; i++) {
+              const y = startY + i * rowGap;
+              const canEdit = i == hi;
+              const dim = !canEdit;
+
+              // highlight row
+              if (canEdit) {
+                const x = c1 - 32,
+                  w = c3,
+                  h = cellH + 16,
+                  r = 10;
+
+                // behind content
+                p.push();
+                const ctx = p.drawingContext;
+                ctx.save();
+                ctx.globalCompositeOperation = "destination-over";
+                p.noStroke();
+                p.fill(255, 245, 180, 140);
+                p.rect(x, y - 8, w, h, r);
+                ctx.restore();
+                p.pop();
+
+                // animated dotted border
+                p.push();
+                const dash = 6,
+                  gap = 6;
+                p.noFill();
+                p.stroke(255, 200, 0);
+                p.strokeWeight(2);
+                p.drawingContext.setLineDash([dash, gap]);
+                p.drawingContext.lineDashOffset = -(
+                  p.frameCount %
+                  (dash + gap)
+                );
+                p.rect(x, y - 8, w, h, r);
+                p.drawingContext.setLineDash([]);
+                p.pop();
+              }
+
+              // dim non-highlighted content
+              p.push();
+              if (dim) p.drawingContext.globalAlpha = 0.38;
 
               p.noStroke();
-              p.fill(table[i].input ? p.color(46,204,113) : p.color(242,80,58));
-              p.rect(c1 - cellW/2, y, cellW, cellH, 10);
-              p.fill(255); p.textSize(16); p.text(table[i].input, c1, y+cellH/2);
+              p.fill(
+                table[i].input ? p.color(46, 204, 113) : p.color(242, 80, 58)
+              );
+              p.rect(c1 - cellW / 2, y, cellW, cellH, 10);
+              p.fill(dim ? 90 : 255);
+              p.textSize(16);
+              p.text(table[i].input, c1, y + cellH / 2);
 
               const outVal = table[i].output;
-              p.stroke(outVal ? p.color(46,204,113) : p.color(242,80,58));
-              p.strokeWeight(2); p.fill(255);
-              p.rect(c2 - cellW/2, y, cellW, cellH, 10);
-              p.noStroke(); p.fill(0); p.text(outVal, c2, y+cellH/2);
+              p.stroke(outVal ? p.color(46, 204, 113) : p.color(242, 80, 58));
+              p.strokeWeight(canEdit ? 3 : 1.5);
+              if (dim) p.stroke(170);
+              p.fill(canEdit ? 255 : 232);
+              p.rect(c2 - cellW / 2, y, cellW, cellH, 10);
+
+              p.noStroke();
+              p.fill(dim ? 80 : 0);
+              p.text(outVal, c2, y + cellH / 2);
 
               results[i] = (table[i].input ^ table[i].output) === 1;
               p.textSize(22);
-              p.fill(results[i] ? p.color(46,204,113) : p.color(242,80,58));
-              p.text(results[i] ? "✅" : "❌", c3, y+cellH/2);
+
+              if (dim) {
+                p.fill(150);
+              } else {
+                p.fill(
+                  results[i] ? p.color(46, 204, 113) : p.color(242, 80, 58)
+                );
+              }
+              p.text(results[i] ? "✅" : "❌", c3, y + cellH / 2);
+
+              p.pop();
             }
 
-            const allValid = table[0].input===0 && table[0].output===1 && table[1].input===1 && table[1].output===0;
+            const allValid =
+              table[0].input === 0 &&
+              table[0].output === 1 &&
+              table[1].input === 1 &&
+              table[1].output === 0;
             p.textSize(16);
-            p.fill(allValid ? p.color(46,204,113) : p.color(242,80,58));
-            p.text(allValid ? "پاسخ درست است" : "پاسخ نادرست است", c2, startY + (table.length + 1) * rowGap);
+            p.fill(allValid ? p.color(46, 204, 113) : p.color(242, 80, 58));
+            p.text(
+              allValid ? "پاسخ درست است" : "پاسخ نادرست است",
+              c2,
+              startY + (table.length + 1) * rowGap
+            );
 
             p.pop();
           };
 
-          p.mousePressed = function(){
+          p.mousePressed = function () {
             // unscale for hit-test so clicks work after resize
             const mx = (p.mouseX - view.ox) / view.s;
             const my = (p.mouseY - view.oy) / view.s;
 
-            for(let i=0;i<table.length;i++){
-              const x0 = c2 - cellW/2;
-              const y0 = startY + i*rowGap;
-              if(mx>x0 && mx<x0+cellW && my>y0 && my<y0+cellH){
-                table[i].output = 1 - table[i].output;
-              }
+            const hi = highlightedIndex();
+            if (hi < 0) return;
+
+            const x0 = c2 - cellW / 2;
+            const y0 = startY + hi * rowGap;
+            if (mx > x0 && mx < x0 + cellW && my > y0 && my < y0 + cellH) {
+              table[hi].output = 1 - table[hi].output;
             }
           };
         };
@@ -195,114 +380,205 @@
       })();
 
       // ===== Circuit (responsive) =====
-      (function setupCircuit(){
-        const sketch = function(p){
-          const BASE_W=320, BASE_H=450;
-          let view = { s:1, ox:0, oy:0 };
+      (function setupCircuit() {
+        const sketch = function (p) {
+          const BASE_W = 320,
+            BASE_H = 450;
+          let view = { s: 1, ox: 0, oy: 0 };
 
           // logical coordinates
-          const centerX=160, centerY=200, w=150, h=90;
-          let switchOn=false;
+          const centerX = 160,
+            centerY = 200,
+            w = 150,
+            h = 90;
+          let switchOn = false;
 
-          p.setup = function(){
-            const r = document.getElementById("circuit").getBoundingClientRect();
-            p.createCanvas(r.width||BASE_W, r.height||BASE_H);
+          p.setup = function () {
+            const r = document
+              .getElementById("circuit")
+              .getBoundingClientRect();
+            p.createCanvas(r.width || BASE_W, r.height || BASE_H);
             p.textAlign(p.CENTER, p.CENTER);
             p.textSize(16);
             p.textFont("Vazir");
           };
 
-          p.windowResized = function(){
-            view = fitToParentCanvas(p, "circuit", BASE_W, BASE_H);
+          p.windowResized = function () {
+            view = fitToParentCanvas(p, "circuit", BASE_W, BASE_H, true);
           };
 
-          p.draw = function(){
-            view = fitToParentCanvas(p, "circuit", BASE_W, BASE_H);
-            p.clear(); p.background(255);
+          p.draw = function () {
+            view = fitToParentCanvas(p, "circuit", BASE_W, BASE_H, true);
+            p.clear();
+            p.background(255);
 
-            p.push(); p.translate(view.ox, view.oy); p.scale(view.s);
+            p.push();
+            p.translate(view.ox, view.oy);
+            p.scale(view.s);
             drawCircuit();
             p.pop();
           };
 
-          function drawCircuit(){
+          function drawCircuit() {
             // frame wires
-            p.stroke(0); p.strokeWeight(3); p.noFill();
-            p.line(centerX - w/2, centerY - h/2, centerX + w/2, centerY - h/2);
-            p.line(centerX + w/2, centerY - h/2, centerX + w/2, centerY + h/2);
-            p.line(centerX + w/2, centerY + h/2, centerX - w/2, centerY + h/2);
-            p.line(centerX - w/2, centerY + h/2, centerX - w/2, centerY - h/2);
+            p.stroke(0);
+            p.strokeWeight(3);
+            p.noFill();
+            p.line(
+              centerX - w / 2,
+              centerY - h / 2,
+              centerX + w / 2,
+              centerY - h / 2
+            );
+            p.line(
+              centerX + w / 2,
+              centerY - h / 2,
+              centerX + w / 2,
+              centerY + h / 2
+            );
+            p.line(
+              centerX + w / 2,
+              centerY + h / 2,
+              centerX - w / 2,
+              centerY + h / 2
+            );
+            p.line(
+              centerX - w / 2,
+              centerY + h / 2,
+              centerX - w / 2,
+              centerY - h / 2
+            );
 
             // vertical break for NOT switch
-            const switchLen=30;
-            p.line(centerX + w/4, centerY + switchLen/2, centerX + w/4, centerY + h/2);
-            p.line(centerX + w/4, centerY - h/2, centerX + w/4, centerY - switchLen/2);
+            const switchLen = 30;
+            p.line(
+              centerX + w / 4,
+              centerY + switchLen / 2,
+              centerX + w / 4,
+              centerY + h / 2
+            );
+            p.line(
+              centerX + w / 4,
+              centerY - h / 2,
+              centerX + w / 4,
+              centerY - switchLen / 2
+            );
 
-            drawBattery(centerX - w/2, centerY);
-            drawResistor(centerX, centerY - h/2);
-            drawBulb(centerX + w/2, centerY);
-            drawSwitch2(centerX + w/4, centerY, switchLen);
+            drawBattery(centerX - w / 2, centerY);
+            drawResistor(centerX, centerY - h / 2);
+            drawBulb(centerX + w / 2, centerY);
+            drawSwitch2(centerX + w / 4, centerY, switchLen);
           }
 
-          function drawBattery(x,y){
-            p.push(); p.translate(x,y);
-            p.stroke(0); p.strokeWeight(4); p.line(-15,0,15,0);
-            p.strokeWeight(3); p.line(-10,8,10,8);
-            p.noStroke(); p.fill(0); p.textSize(10); p.text("باتری",-30,3);
+          function drawBattery(x, y) {
+            p.push();
+            p.translate(x, y);
+            p.stroke(0);
+            p.strokeWeight(4);
+            p.line(-15, 0, 15, 0);
+            p.strokeWeight(3);
+            p.line(-10, 8, 10, 8);
+            p.noStroke();
+            p.fill(0);
+            p.textSize(10);
+            p.text("باتری", -30, 3);
             p.pop();
           }
 
-          function drawResistor(x,y){
-            p.push(); p.translate(x,y);
-            p.stroke(0); p.strokeWeight(3); p.noFill();
+          function drawResistor(x, y) {
+            p.push();
+            p.translate(x, y);
+            p.stroke(0);
+            p.strokeWeight(3);
+            p.noFill();
             p.beginShape();
-            p.vertex(-22,0); p.vertex(-15,0); p.vertex(-11,-8); p.vertex(-4,8);
-            p.vertex(4,-8); p.vertex(11,8); p.vertex(15,0); p.vertex(22,0);
+            p.vertex(-22, 0);
+            p.vertex(-15, 0);
+            p.vertex(-11, -8);
+            p.vertex(-4, 8);
+            p.vertex(4, -8);
+            p.vertex(11, 8);
+            p.vertex(15, 0);
+            p.vertex(22, 0);
             p.endShape();
-            p.noStroke(); p.fill(0); p.textSize(10); p.text("مقاومت",0,20); p.text("R",0,-15);
+            p.noStroke();
+            p.fill(0);
+            p.textSize(10);
+            p.text("مقاومت", 0, 20);
+            p.text("R", 0, -15);
             p.pop();
           }
 
-          function drawBulb(x,y){
+          function drawBulb(x, y) {
             const on = !switchOn; // inverter
-            p.push(); p.translate(x,y);
-            p.stroke(0); p.strokeWeight(2);
-            p.fill(on ? p.color(255,255,0) : 255);
-            p.ellipse(0,0,30,30);
-            p.stroke(on ? p.color(255,150,0) : 0); p.strokeWeight(on ? 2 : 1);
-            p.line(-6,-6,6,6); p.line(-6,6,6,-6);
-            p.noStroke(); p.fill(0); p.textSize(10); p.text("لامپ",35,0);
+            p.push();
+            p.translate(x, y);
+            p.stroke(0);
+            p.strokeWeight(2);
+            p.fill(on ? p.color(255, 255, 0) : 255);
+            p.ellipse(0, 0, 30, 30);
+            p.stroke(on ? p.color(255, 150, 0) : 0);
+            p.strokeWeight(on ? 2 : 1);
+            p.line(-6, -6, 6, 6);
+            p.line(-6, 6, 6, -6);
+            p.noStroke();
+            p.fill(0);
+            p.textSize(10);
+            p.text("لامپ", 35, 0);
+            p.text(on ? "روشن" : "خاموش", 35, 12);
             p.pop();
           }
 
-          function drawSwitch2(x,y,swLen){
-            p.push(); p.translate(x,y);
-            p.stroke(0); p.strokeWeight(3); p.fill(0);
-            p.ellipse(0, swLen/2, 5, 5);
-            p.ellipse(0,-swLen/2, 5, 5);
-            if (switchOn){
-              p.stroke(0,150,0); p.strokeWeight(4); p.line(0,-swLen/2, 0, swLen/2);
+          function drawSwitch2(x, y, swLen) {
+            p.push();
+            p.translate(x, y);
+            p.stroke(0);
+            p.strokeWeight(3);
+            p.fill(0);
+            p.ellipse(0, swLen / 2, 5, 5);
+            p.ellipse(0, -swLen / 2, 5, 5);
+            if (switchOn) {
+              p.stroke(0, 150, 0);
+              p.strokeWeight(4);
+              p.line(0, -swLen / 2, 0, swLen / 2);
             } else {
-              p.stroke(255,0,0); p.strokeWeight(3); p.line(0, swLen/2, 10, -swLen/2);
+              p.stroke(255, 0, 0);
+              p.strokeWeight(3);
+              p.line(0, swLen / 2, 10, -swLen / 2);
             }
-            p.noStroke(); p.fill(0); p.textSize(10);
-            p.text("سویچ",-20,0); p.text(switchOn?"بسته":"باز",-20,12);
+            p.noStroke();
+            p.fill(0);
+            p.textSize(10);
+            p.text("سوئیچ", -20, 0);
+            p.text(switchOn ? "بسته" : "باز", -20, 12);
             p.pop();
           }
 
-          function handlePress(){
+          function handlePress() {
             // unscale hit-test at logical coords
             const mx = (p.mouseX - view.ox) / view.s;
             const my = (p.mouseY - view.oy) / view.s;
-            const sx = centerX + w/4, sy = centerY;
+            const sx = centerX + w / 4,
+              sy = centerY;
             const d = Math.hypot(mx - sx, my - sy);
             if (d < 20) switchOn = !switchOn;
+
+            inputs.input = switchOn ? 1 : 0;
           }
 
-          let handledTouch=false;
-          p.touchStarted = function(){ handlePress(); handledTouch=true; return false; };
-          p.touchEnded   = function(){ handledTouch=false; };
-          p.mousePressed = function(){ if (handledTouch || p.touches.length) return; handlePress(); };
+          let handledTouch = false;
+          p.touchStarted = function () {
+            handlePress();
+            handledTouch = true;
+            return false;
+          };
+          p.touchEnded = function () {
+            handledTouch = false;
+          };
+          p.mousePressed = function () {
+            if (handledTouch || p.touches.length) return;
+            handlePress();
+          };
         };
         new p5(sketch, "circuit");
       })();

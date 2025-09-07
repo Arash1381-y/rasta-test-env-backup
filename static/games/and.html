@@ -36,18 +36,21 @@
         :root {
           --box-w: 280px;
           --box-h: 420px;
+          --fs-base: 12px;
         }
       }
       @media (min-width: 768px) {
         :root {
           --box-w: 320px;
           --box-h: 450px;
+          --fs-base: 14px;
         }
       }
       @media (min-width: 1024px) {
         :root {
           --box-w: 340px;
           --box-h: 480px;
+          --fs-base: 16px;
         }
       }
 
@@ -184,19 +187,25 @@
 
     <script>
       // ====== shared state ======
-      // Current inputs driven by the circuit switches
-      const inputs = { i1: 0, i2: 0 };
 
-      // Truth table rows for AND; user toggles the output column
+      // inputs
+      const inputs = { i1: 0, i2: 0 };
+      // truth table
       const table = [
-        { i1: 0, i2: 0, o: 1 },
-        { i1: 0, i2: 1, o: 0 },
+        { i1: 0, i2: 0, o: 0 },
         { i1: 1, i2: 0, o: 1 },
+        { i1: 0, i2: 1, o: 1 },
         { i1: 1, i2: 1, o: 0 },
       ];
       const results = [false, false, false, false];
 
-      function fitToParentCanvas(p, parentId, baseW = 320, baseH = 450, isCircuit = false) {
+      function fitToParentCanvas(
+        p,
+        parentId,
+        baseW = 320,
+        baseH = 450,
+        isCircuit = false
+      ) {
         const el = document.getElementById(parentId);
         const r = el.getBoundingClientRect();
         const w = Math.max(10, Math.floor(r.width));
@@ -205,10 +214,18 @@
         const sx = w / baseW,
           sy = h / baseH;
         let s = Math.min(sx, sy);
-        if (isCircuit) s *= 1.4
+        if (isCircuit) s *= 1.4;
         const ox = (w - baseW * s) / 2,
           oy = (h - baseH * s) / 2;
         return { s, ox, oy, w, h, baseW, baseH };
+      }
+
+      function highlightedIndex() {
+        // find the row whose inputs match the circuit inputs
+        for (let i = 0; i < table.length; i++) {
+          if (table[i].i1 === inputs.i1 && table[i].i2 === inputs.i2) return i;
+        }
+        return -1;
       }
 
       // ========= Truth table sketch =========
@@ -239,15 +256,6 @@
           p.windowResized = function () {
             view = fitToParentCanvas(p, "truth-table", BASE_W, BASE_H);
           };
-
-          function highlightedIndex() {
-            // find the row whose inputs match the circuit inputs
-            for (let i = 0; i < table.length; i++) {
-              if (table[i].i1 === inputs.i1 && table[i].i2 === inputs.i2)
-                return i;
-            }
-            return -1;
-          }
 
           p.draw = function () {
             view = fitToParentCanvas(p, "truth-table", BASE_W, BASE_H);
@@ -282,7 +290,7 @@
               const canEdit = i === hi;
               const dim = !canEdit;
 
-              // highlight row background + animated border (unchanged)
+              // highlight row
               if (canEdit) {
                 const x = c1 - 32,
                   w = c4,
@@ -388,18 +396,12 @@
             const mx = (p.mouseX - view.ox) / view.s;
             const my = (p.mouseY - view.oy) / view.s;
 
-            const hi = (function () {
-              for (let i = 0; i < table.length; i++) {
-                if (table[i].i1 === inputs.i1 && table[i].i2 === inputs.i2)
-                  return i;
-              }
-              return -1;
-            })();
 
+            const hi = highlightedIndex();
             if (hi < 0) return;
 
             const x0 = c3 - cellW / 2;
-            const y0 = startY + hi * 60; // rowGap = 60
+            const y0 = startY + hi * rowGap;
             if (mx > x0 && mx < x0 + cellW && my > y0 && my < y0 + cellH) {
               table[hi].o = 1 - table[hi].o; // toggle only highlighted row
             }
@@ -549,7 +551,7 @@
             p.noStroke();
             p.fill(0);
             p.textSize(10);
-            p.text("لامپ", 28, 0);
+            p.text(on ? "لامپ روشن" : "لامپ خاموش", -47, 0);
             p.pop();
           }
 
