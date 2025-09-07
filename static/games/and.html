@@ -27,24 +27,10 @@
         --shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
       }
 
-      @media (min-width: 640px) {
-        :root {
-          --box-w: 280px;
-          --box-h: 420px;
-        }
-      }
-      @media (min-width: 768px) {
-        :root {
-          --box-w: 320px;
-          --box-h: 450px;
-        }
-      }
-      @media (min-width: 1024px) {
-        :root {
-          --box-w: 340px;
-          --box-h: 480px;
-        }
-      }
+      @media (min-width:300px){ :root{ --box-w:200px; --box-h:250px; --fs-base:9px } }
+      @media (min-width:640px){ :root{ --box-w:280px; --box-h:420px; } }
+      @media (min-width:768px){ :root{ --box-w:320px; --box-h:450px; } }
+      @media (min-width:1024px){ :root{ --box-w:340px; --box-h:480px; } }
 
       html,
       body {
@@ -72,7 +58,7 @@
         flex-wrap: wrap;
         /* padding: 10px; */
       }
-      @media (min-width: 600px) {
+      @media (min-width: 300px) {
         .wrap {
           flex-direction: row;
           flex-wrap: nowrap;
