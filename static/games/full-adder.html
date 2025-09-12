@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>جمع‌کننده کامل – نماد، جمع روی کاغذ، جدول درستی</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+    <style>
+      @font-face {
+        font-family: "Vazir";
+        src: url("https://cdn.fontcdn.ir/Font/Persian/Vazir/Vazir.woff")
+          format("woff");
+        font-display: swap;
+      }
+      :root {
+        --fs-base: clamp(13px, 0.9vw + 0.25rem, 18px);
+        --fs-lg: calc(var(--fs-base) * 1.125);
+        --box-w: clamp(220px, 90vw, 300px);
+        --box-h: clamp(300px, 70vh, 400px);
+        --radius: 14px;
+        --shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+      }
+      @media (min-width: 300px) {
+        :root {
+          --box-w: 200px;
+          --box-h: 280px;
+          --fs-base: 9px;
+        }
+      }
+      @media (min-width: 640px) {
+        :root {
+          --box-w: 280px;
+          --box-h: 420px;
+          --fs-base: 12px;
+        }
+      }
+      @media (min-width: 768px) {
+        :root {
+          --box-w: 320px;
+          --box-h: 480px;
+          --fs-base: 14px;
+        }
+      }
+      @media (min-width: 1024px) {
+        :root {
+          --box-w: 340px;
+          --box-h: 600px;
+          --fs-base: 16px;
+        }
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        background: #fff;
+        font-family: Vazir, system-ui, -apple-system, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+        font-size: var(--fs-base);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow-x: hidden;
+      }
+      .wrap {
+        display: flex;
+        flex-direction: row;
+        gap: 10px;
+        width: 100%;
+        max-width: 1200px;
+        align-items: center;
+        justify-content: center;
+      }
+      .box {
+        flex: 1 1 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 0;
+      }
+      .card {
+        width: var(--box-w);
+        height: var(--box-h);
+        background: #fff;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        margin: 0 2px;
+      }
+      .card-head {
+        padding: 10px 14px;
+        text-align: center;
+        font-size: var(--fs-lg);
+        border-bottom: 1px solid #eee;
+      }
+      .card-body {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap" dir="ltr">
+      <div class="box" dir="rtl">
+        <div class="card">
+          <div class="card-head">نماد جمع‌کننده کامل</div>
+          <div class="card-body">
+            <div id="symbol" style="width: 100%; height: 100%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="box" dir="rtl">
+        <div class="card">
+          <div class="card-head">جمع ستونی</div>
+          <div class="card-body">
+            <div id="paper" style="width: 100%; height: 100%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="box" dir="rtl">
+        <div class="card">
+          <div class="card-head">جدول درستی جمع‌کننده کامل</div>
+          <div class="card-body">
+            <div id="truth-table" style="width: 100%; height: 100%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ---------- responsive scaling ----------
+      function fitToParentCanvas(p, parentId, baseW = 320, baseH = 450) {
+        const el = document.getElementById(parentId);
+        const r = el.getBoundingClientRect();
+        const w = Math.max(10, Math.floor(r.width));
+        const h = Math.max(10, Math.floor(r.height));
+        if (p._renderer) p.resizeCanvas(w, h);
+        const sx = w / baseW,
+          sy = h / baseH;
+        const s = Math.min(sx, sy);
+        const ox = (w - baseW * s) / 2,
+          oy = (h - baseH * s) / 2;
+        return { s, ox, oy, w, h, baseW, baseH };
+      }
+
+      // ---------- shared state ----------
+      const rows = [];
+      for (let cin of [0, 1])
+        for (let b of [0, 1])
+          for (let a of [0, 1]) rows.push({ a, b, cin, s: 0, c: 0 });
+      const inputs = { a: 0, b: 0, cin: 0 };
+      function currentIndex() {
+        return inputs.a + inputs.b * 2 + inputs.cin * 4;
+      }
+      function expectedSum(a, b, cin) {
+        return a ^ b ^ cin;
+      }
+      function expectedCarry(a, b, cin) {
+        return (a & b) | (b & cin) | (a & cin);
+      }
+      function setInput(a, b, cin) {
+        inputs.a = a ? 1 : 0;
+        inputs.b = b ? 1 : 0;
+        inputs.cin = cin ? 1 : 0;
+      }
+      function setOutputsForCurrent(s, c) {
+        const i = currentIndex();
+        rows[i].s = s ? 1 : 0;
+        rows[i].c = c ? 1 : 0;
+      }
+
+      // ---------- Card 1: Symbol with animated flow ----------
+      (function () {
+        const sketch = function (p) {
+          const BASE_W = 320,
+            BASE_H = 450;
+          let view = { s: 1, ox: 0, oy: 0 };
+          let hbA = null,
+            hbB = null,
+            hbCin = null,
+            hbS = null,
+            hbC = null;
+
+          // colors
+          let GREEN1, GREEN2, RED1, RED2, LABEL, TEXT;
+          p.setup = function () {
+            const r = document.getElementById("symbol").getBoundingClientRect();
+            p.createCanvas(r.width || BASE_W, r.height || BASE_H);
+            p.textAlign(p.CENTER, p.CENTER);
+            p.textFont("Vazir");
+            GREEN1 = p.color(46, 204, 113);
+            GREEN2 = p.lerpColor(GREEN1, p.color(255), 0.35);
+            RED1 = p.color(242, 80, 58);
+            RED2 = p.lerpColor(RED1, p.color(255), 0.35);
+            LABEL = p.color(40);
+            TEXT = p.color(255);
+          };
+          p.windowResized = function () {
+            view = fitToParentCanvas(p, "symbol", BASE_W, BASE_H);
+          };
+
+          function drawArrowLine(x1, y1, x2, y2, col, w = 2.5, ah = 8) {
+            p.stroke(col);
+            p.strokeWeight(w);
+            p.line(x1, y1, x2, y2);
+            const ang = Math.atan2(y2 - y1, x2 - x1);
+            p.noStroke();
+            p.fill(col);
+            const hx = Math.cos(ang),
+              hy = Math.sin(ang);
+            const ax = x2,
+              ay = y2,
+              p1x = ax - ah * hx,
+              p1y = ay - ah * hy;
+            const lx = p1x + ah * 0.6 * -hy,
+              ly = p1y + ah * 0.6 * hx;
+            const rx = p1x - ah * 0.6 * -hy,
+              ry = p1y - ah * 0.6 * hx;
+            p.triangle(ax, ay, lx, ly, rx, ry);
+          }
+
+          // flow animation (slower speed = 0.4 px/frame)
+          function drawFlow(x1, y1, x2, y2, isOn) {
+            const c1 = isOn ? GREEN1 : RED1;
+            const c2 = isOn ? GREEN2 : RED2;
+            const dx = x2 - x1,
+              dy = y2 - y1,
+              L = Math.hypot(dx, dy);
+            if (L < 1) return;
+            const ux = dx / L,
+              uy = dy / L;
+            const spacing = 12,
+              speed = 0.4,
+              r = 2.8,
+              phase = (p.frameCount * speed) % spacing;
+            for (let d = phase; d < L - 10; d += spacing) {
+              const x = x1 + ux * d,
+                y = y1 + uy * d;
+              p.noStroke();
+              p.fill(((d / spacing) | 0) % 2 === 0 ? c1 : c2);
+              p.circle(x, y, r * 2);
+            }
+          }
+
+          function drawIOBox(x, y, w, h, val, label) {
+            const col = val ? GREEN1 : RED1;
+            p.noStroke();
+            p.fill(col);
+            p.rect(x, y, w, h, 10);
+            p.fill(TEXT);
+            p.textSize(Math.min(h * 0.5, 22));
+            p.text(val, x + w / 2, y + h / 2 + 1);
+            p.fill(LABEL);
+            p.textSize(Math.min(h * 0.35, 16));
+            p.text(label, x + w / 2, y - Math.min(h * 0.35, 16) - 2);
+          }
+          function hit(mx, my, hb) {
+            return (
+              hb &&
+              mx > hb.x &&
+              mx < hb.x + hb.w &&
+              my > hb.y &&
+              my < hb.y + hb.h
+            );
+          }
+
+          p.draw = function () {
+            view = fitToParentCanvas(p, "symbol", BASE_W, BASE_H);
+            p.clear();
+            p.background(255);
+            p.push();
+            p.translate(view.ox, view.oy);
+            p.scale(view.s);
+
+            const W = BASE_W,
+              H = BASE_H;
+            const margin = Math.min(W, H) * 0.07;
+            const gateW = W * 0.36,
+              gateH = H * 0.52;
+            const gateX = (W - gateW) / 2,
+              gateY = H * 0.18;
+            const boxSize = Math.min(W, H) * 0.11;
+            const leftX = margin,
+              rightX = W - margin - boxSize;
+
+            // input y's
+            const aY = gateY + gateH * 0.18 - boxSize / 2;
+            const bY = gateY + gateH * 0.5 - boxSize / 2;
+            const cinY = gateY + gateH * 0.82 - boxSize / 2;
+
+            // inputs
+            drawIOBox(leftX, aY, boxSize, boxSize, inputs.a, "A");
+            hbA = { x: leftX, y: aY, w: boxSize, h: boxSize };
+            drawIOBox(leftX, bY, boxSize, boxSize, inputs.b, "B");
+            hbB = { x: leftX, y: bY, w: boxSize, h: boxSize };
+            drawIOBox(leftX, cinY, boxSize, boxSize, inputs.cin, "Cᵢₙ");
+            hbCin = { x: leftX, y: cinY, w: boxSize, h: boxSize };
+
+            // gate
+            p.noFill();
+            p.stroke(0);
+            p.strokeWeight(3);
+            p.rect(gateX, gateY, gateW, gateH, 6);
+            p.noStroke();
+            p.fill(0);
+            p.textSize(Math.min(gateH * 0.28, 32));
+            p.text("FA", gateX + gateW / 2, gateY + gateH / 2);
+
+            // wires in
+            const aWireY = aY + boxSize / 2,
+              bWireY = bY + boxSize / 2,
+              cinWireY = cinY + boxSize / 2;
+            drawArrowLine(
+              leftX + boxSize,
+              aWireY,
+              gateX,
+              aWireY,
+              inputs.a ? GREEN1 : RED1,
+              2.5,
+              8
+            );
+            drawArrowLine(
+              leftX + boxSize,
+              bWireY,
+              gateX,
+              bWireY,
+              inputs.b ? GREEN1 : RED1,
+              2.5,
+              8
+            );
+            drawArrowLine(
+              leftX + boxSize,
+              cinWireY,
+              gateX,
+              cinWireY,
+              inputs.cin ? GREEN1 : RED1,
+              2.5,
+              8
+            );
+
+            // outputs
+            const i = currentIndex();
+            const sVal = rows[i].s,
+              cVal = rows[i].c;
+            const sY = gateY + gateH * 0.35,
+              cY = gateY + gateH * 0.7;
+
+            // wires out
+            drawArrowLine(
+              gateX + gateW,
+              sY,
+              rightX,
+              sY,
+              sVal ? GREEN1 : RED1,
+              2.5,
+              8
+            );
+            drawArrowLine(
+              gateX + gateW,
+              cY,
+              rightX,
+              cY,
+              cVal ? GREEN1 : RED1,
+              2.5,
+              8
+            );
+
+            // flow overlays
+            drawFlow(leftX + boxSize, aWireY, gateX, aWireY, !!inputs.a);
+            drawFlow(leftX + boxSize, bWireY, gateX, bWireY, !!inputs.b);
+            drawFlow(leftX + boxSize, cinWireY, gateX, cinWireY, !!inputs.cin);
+            drawFlow(gateX + gateW, sY, rightX, sY, !!sVal);
+            drawFlow(gateX + gateW, cY, rightX, cY, !!cVal);
+
+            // output boxes
+            drawIOBox(rightX, sY - boxSize / 2, boxSize, boxSize, sVal, "S");
+            hbS = { x: rightX, y: sY - boxSize / 2, w: boxSize, h: boxSize };
+            drawIOBox(rightX, cY - boxSize / 2, boxSize, boxSize, cVal, "Cₒᵤₜ");
+            hbC = { x: rightX, y: cY - boxSize / 2, w: boxSize, h: boxSize };
+
+            p.pop();
+          };
+
+          function press(px, py) {
+            const mx = (px - view.ox) / view.s,
+              my = (py - view.oy) / view.s;
+            if (hit(mx, my, hbA)) setInput(1 - inputs.a, inputs.b, inputs.cin);
+            else if (hit(mx, my, hbB))
+              setInput(inputs.a, 1 - inputs.b, inputs.cin);
+            else if (hit(mx, my, hbCin))
+              setInput(inputs.a, inputs.b, 1 - inputs.cin);
+            else if (hit(mx, my, hbS))
+              setOutputsForCurrent(
+                1 - rows[currentIndex()].s,
+                rows[currentIndex()].c
+              );
+            else if (hit(mx, my, hbC))
+              setOutputsForCurrent(
+                rows[currentIndex()].s,
+                1 - rows[currentIndex()].c
+              );
+          }
+          p.mousePressed = function () {
+            press(p.mouseX, p.mouseY);
+          };
+          p.touchStarted = function () {
+            press(p.mouseX, p.mouseY);
+            return false;
+          };
+        };
+        new p5(sketch, "symbol");
+      })();
+
+      // ---------- Card 2: Column addition ----------
+      (function () {
+        const sketch = function (p) {
+          const BASE_W = 320,
+            BASE_H = 450;
+          let view = { s: 1, ox: 0, oy: 0 };
+          p.setup = function () {
+            const r = document.getElementById("paper").getBoundingClientRect();
+            p.createCanvas(r.width || BASE_W, r.height || BASE_H);
+            p.textAlign(p.CENTER, p.BASELINE);
+            p.textFont("Vazir");
+          };
+          p.windowResized = function () {
+            view = fitToParentCanvas(p, "paper", BASE_W, BASE_H);
+          };
+          p.draw = function () {
+            view = fitToParentCanvas(p, "paper", BASE_W, BASE_H);
+            p.clear();
+            p.background(255);
+            p.push();
+            p.translate(view.ox, view.oy);
+            p.scale(view.s);
+
+            const W = BASE_W,
+              H = BASE_H;
+            const xS = W * 0.55;
+            const digitSize = Math.min(H * 0.14, 46);
+            const rowGap = digitSize * 0.95;
+            const carryOffset = digitSize * 0.85;
+
+            const blockH =
+              digitSize +
+              rowGap +
+              digitSize +
+              rowGap +
+              digitSize +
+              digitSize * 0.4 +
+              digitSize * 0.95 +
+              digitSize;
+            const yCin = (H - blockH) / 2 + digitSize;
+            const yA = yCin + rowGap;
+            const yB = yA + rowGap;
+
+            const i = currentIndex();
+            const { a, b, cin } = inputs;
+            const sUser = rows[i].s,
+              cUser = rows[i].c;
+
+            // A
+            p.noStroke();
+            p.fill(0);
+            p.textSize(digitSize);
+            p.text(a, xS, yA);
+            p.textSize(Math.max(11, digitSize * 0.45));
+            p.fill(90);
+            p.text("A", xS + carryOffset, yA);
+
+            // +
+            p.textSize(digitSize * 0.8);
+            p.fill(0);
+            p.text("+", xS - carryOffset * 1.2, yB);
+
+            // B
+            p.textSize(digitSize);
+            p.fill(0);
+            p.text(b, xS, yB);
+            p.textSize(Math.max(11, digitSize * 0.45));
+            p.fill(90);
+            p.text("B", xS + carryOffset, yB);
+
+            // + for A row
+            p.textSize(digitSize * 0.8);
+            p.fill(0);
+            p.text("+", xS - carryOffset * 1.2, yA);
+
+            // Cin
+            p.textSize(digitSize);
+            p.fill(0);
+            p.text(cin, xS, yCin);
+            p.textSize(Math.max(11, digitSize * 0.45));
+            p.fill(90);
+            p.text("Cᵢₙ", xS + carryOffset, yCin);
+
+            // rule
+            const lineY = yB + digitSize * 0.4;
+            p.stroke(0);
+            p.strokeWeight(2);
+            p.line(
+              xS - carryOffset * 1.2,
+              lineY,
+              xS + carryOffset * 0.9,
+              lineY
+            );
+
+            // outputs row: [Cout] [S]
+            const yOut = lineY + digitSize * 0.95;
+            p.noStroke();
+            p.fill(0);
+            p.textSize(digitSize);
+            const colGap = digitSize * 0.7;
+            p.text(cUser, xS - colGap, yOut);
+            p.text(sUser, xS, yOut);
+
+            // labels
+            p.textSize(Math.max(11, digitSize * 0.45));
+            p.fill(90);
+            p.text("Cₒᵤₜ", xS - colGap, yOut + digitSize * 0.75);
+            p.text("S", xS + 6, yOut + digitSize * 0.75);
+
+            p.pop();
+          };
+        };
+        new p5(sketch, "paper");
+      })();
+
+      // ---------- Card 3: Truth table with active highlight ----------
+      (function () {
+        const sketch = function (p) {
+          const BASE_W = 320,
+            BASE_H = 450;
+          let view = { s: 1, ox: 0, oy: 0 };
+
+          const startY = 30,
+            rowGap = 50,
+            cellW = 30,
+            cellH = 30;
+          const cA = 30,
+            cB = cA + 50,
+            cCin = cB + 50,
+            cS = cCin + 50,
+            cC = cS + 50,
+            cR = cC + 50;
+
+          p.setup = function () {
+            const r = document
+              .getElementById("truth-table")
+              .getBoundingClientRect();
+            p.createCanvas(r.width || BASE_W, r.height || BASE_H);
+            p.textAlign(p.CENTER, p.CENTER);
+            p.textFont("Vazir");
+          };
+          p.windowResized = function () {
+            view = fitToParentCanvas(p, "truth-table", BASE_W, BASE_H);
+          };
+
+          function highlightedIndex() {
+            for (let i = 0; i < rows.length; i++)
+              if (
+                rows[i].a === inputs.a &&
+                rows[i].b === inputs.b &&
+                rows[i].cin === inputs.cin
+              )
+                return i;
+            return -1;
+          }
+
+          p.draw = function () {
+            view = fitToParentCanvas(p, "truth-table", BASE_W, BASE_H);
+            p.clear();
+            p.background(255);
+            p.push();
+            p.translate(view.ox, view.oy);
+            p.scale(view.s);
+
+            // headers
+            p.textSize(18);
+            p.fill(0);
+            p.text("A", cA, startY - 25);
+            p.text("B", cB, startY - 25);
+            p.text("Cᵢₙ", cCin, startY - 25);
+            p.text("S", cS, startY - 25);
+            p.text("Cₒᵤₜ", cC, startY - 25);
+            p.text("نتیجه", cR, startY - 25);
+
+            // column guides
+            const yTop = startY - 35,
+              yBot = startY + 7 * rowGap + cellH + 10;
+            p.stroke(180);
+            p.strokeWeight(1);
+            p.line((cA + cB) / 2, yTop, (cA + cB) / 2, yBot);
+            p.line((cB + cCin) / 2, yTop, (cB + cCin) / 2, yBot);
+            p.line((cCin + cS) / 2, yTop, (cCin + cS) / 2, yBot);
+            p.line((cS + cC) / 2, yTop, (cS + cC) / 2, yBot);
+            p.line((cC + cR) / 2, yTop, (cC + cR) / 2, yBot);
+
+            const hi = highlightedIndex();
+            let allValid = true;
+
+            for (let i = 0; i < rows.length; i++) {
+              const y = startY + i * rowGap;
+              const active = i === hi;
+
+              if (active) {
+                const x = cA - 28,
+                  w = cR + 25,
+                  h = cellH + 16,
+                  r = 10;
+                p.push();
+                const ctx = p.drawingContext;
+                ctx.save();
+                ctx.globalCompositeOperation = "destination-over";
+                p.noStroke();
+                p.fill(255, 245, 180, 140);
+                p.rect(x, y - 8, w, h, r);
+                ctx.restore();
+                p.pop();
+
+                p.push();
+                const dash = 6,
+                  gap = 6;
+                p.noFill();
+                p.stroke(255, 200, 0);
+                p.strokeWeight(2);
+                p.drawingContext.setLineDash([dash, gap]);
+                p.drawingContext.lineDashOffset = -(
+                  p.frameCount %
+                  (dash + gap)
+                );
+                p.rect(x, y - 8, w, h, r);
+                p.drawingContext.setLineDash([]);
+                p.pop();
+              }
+
+              p.push();
+              if (!active) p.drawingContext.globalAlpha = 0.38;
+
+              // cells
+              const G = p.color(46, 204, 113),
+                R = p.color(242, 80, 58);
+
+              // A
+              p.noStroke();
+              p.fill(rows[i].a ? G : R);
+              p.rect(cA - cellW / 2, y, cellW, cellH, 10);
+              p.fill(active ? 255 : 90);
+              p.textSize(16);
+              p.text(rows[i].a, cA, y + cellH / 2);
+
+              // B
+              p.noStroke();
+              p.fill(rows[i].b ? G : R);
+              p.rect(cB - cellW / 2, y, cellW, cellH, 10);
+              p.fill(active ? 255 : 90);
+              p.text(rows[i].b, cB, y + cellH / 2);
+
+              // Cin
+              p.noStroke();
+              p.fill(rows[i].cin ? G : R);
+              p.rect(cCin - cellW / 2, y, cellW, cellH, 10);
+              p.fill(active ? 255 : 90);
+              p.text(rows[i].cin, cCin, y + cellH / 2);
+
+              // S
+              const outS = rows[i].s;
+              p.stroke(active ? (outS ? G : R) : 170);
+              p.strokeWeight(active ? 3 : 1.5);
+              p.fill(active ? 255 : 232);
+              p.rect(cS - cellW / 2, y, cellW, cellH, 10);
+              p.noStroke();
+              p.fill(active ? 0 : 80);
+              p.text(outS, cS, y + cellH / 2);
+
+              // Cout
+              const outC = rows[i].c;
+              p.stroke(active ? (outC ? G : R) : 170);
+              p.strokeWeight(active ? 3 : 1.5);
+              p.fill(active ? 255 : 232);
+              p.rect(cC - cellW / 2, y, cellW, cellH, 10);
+              p.noStroke();
+              p.fill(active ? 0 : 80);
+              p.text(outC, cC, y + cellH / 2);
+
+              // result
+              const ok =
+                outS === expectedSum(rows[i].a, rows[i].b, rows[i].cin) &&
+                outC === expectedCarry(rows[i].a, rows[i].b, rows[i].cin);
+              if (!ok) allValid = false;
+              p.textSize(22);
+              p.fill(active ? (ok ? G : R) : 0);
+              p.text(ok ? "✅" : "❌", cR, y + cellH / 2);
+              p.pop();
+            }
+
+            p.textSize(16);
+            p.fill(allValid ? p.color(46, 204, 113) : p.color(242, 80, 58));
+            p.text(
+              allValid ? "پاسخ درست است" : "پاسخ نادرست است",
+              (cA + cR) / 2,
+              startY + rows.length * (rowGap + 1)
+            );
+
+            p.pop();
+          };
+
+          function handlePress(px, py) {
+            const mx = (px - view.ox) / view.s,
+              my = (py - view.oy) / view.s;
+            const cA0 = cA,
+              cB0 = cB,
+              cCin0 = cCin,
+              cS0 = cS,
+              cC0 = cC;
+            for (let i = 0; i < rows.length; i++) {
+              const y = startY + i * rowGap,
+                xA = cA0 - cellW / 2,
+                xB = cB0 - cellW / 2,
+                xCin = cCin0 - cellW / 2,
+                xS = cS0 - cellW / 2,
+                xC = cC0 - cellW / 2;
+              // click A/B/Cin to set inputs
+              if (mx > xA && mx < xA + cellW && my > y && my < y + cellH) {
+                setInput(rows[i].a, rows[i].b, rows[i].cin);
+                return;
+              }
+              if (mx > xB && mx < xB + cellW && my > y && my < y + cellH) {
+                setInput(rows[i].a, rows[i].b, rows[i].cin);
+                return;
+              }
+              if (mx > xCin && mx < xCin + cellW && my > y && my < y + cellH) {
+                setInput(rows[i].a, rows[i].b, rows[i].cin);
+                return;
+              }
+              // toggle S/C in active row
+              const hi = currentIndex(),
+                yAct = startY + hi * rowGap;
+              if (i === hi) {
+                if (
+                  mx > xS &&
+                  mx < xS + cellW &&
+                  my > yAct &&
+                  my < yAct + cellH
+                ) {
+                  rows[hi].s = 1 - rows[hi].s;
+                  return;
+                }
+                if (
+                  mx > xC &&
+                  mx < xC + cellW &&
+                  my > yAct &&
+                  my < yAct + cellH
+                ) {
+                  rows[hi].c = 1 - rows[hi].c;
+                  return;
+                }
+              }
+            }
+          }
+          p.mousePressed = function () {
+            handlePress(p.mouseX, p.mouseY);
+          };
+          p.touchStarted = function () {
+            handlePress(p.mouseX, p.mouseY);
+            return false;
+          };
+        };
+        new p5(sketch, "truth-table");
+      })();
+    </script>
+  </body>
+</html>
