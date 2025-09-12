@@ -161,8 +161,8 @@
           function drawIOBox(x, y, w, h, val, label) {
             const col = val ? [46, 204, 113] : [242, 80, 58];
             p.noStroke(); p.fill(...col); p.rect(x, y, w, h, 10);
-            p.fill(255); p.textSize(Math.min(h * 0.55, 18)); p.text(val, x + w / 2, y + h / 2 + 1);
-            p.fill(50); p.textSize(Math.min(h * 0.38, 12)); p.text(label, x + w / 2, y - 12);
+            p.fill(255); p.textSize(Math.min(h * 0.8, 20)); p.text(val, x + w / 2, y + h / 2 + 1);
+            p.fill(50); p.textSize(Math.min(h, 20)); p.text(label, x + w / 2, y - 12);
           }
 
           // dashed selection with colored fill + border

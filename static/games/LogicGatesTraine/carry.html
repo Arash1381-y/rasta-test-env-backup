@@ -161,8 +161,8 @@
           function drawIOBox(x, y, w, h, val, label) {
             const col = val ? [46, 204, 113] : [242, 80, 58];
             p.noStroke(); p.fill(...col); p.rect(x, y, w, h, 10);
-            p.fill(255); p.textSize(Math.min(h * 0.55, 18)); p.text(val, x + w / 2, y + h / 2 + 1);
-            p.fill(50); p.textSize(Math.min(h * 0.38, 12)); p.text(label, x + w / 2, y - 12);
+            p.fill(255); p.textSize(Math.min(h * 0.8, 20)); p.text(val, x + w / 2, y + h / 2 + 1);
+            p.fill(50); p.textSize(Math.min(h, 20)); p.text(label, x + w / 2, y - 12);
           }
 
           // dashed selection with colored fill + border
@@ -227,7 +227,7 @@
             drawIOBox(leftX, aY - ioSize / 2, ioSize, ioSize, inputs.a, "A");
             drawIOBox(leftX, bY - ioSize / 2, ioSize, ioSize, inputs.b, "B");
             const sumVal = expectedSum(inputs.a, inputs.b);
-            drawIOBox(rightX - ioSize, sY - ioSize / 2, ioSize, ioSize, sumVal, "S");
+            drawIOBox(rightX - ioSize, sY - ioSize / 2, ioSize, ioSize, sumVal, "C");
 
             // gate image
             if (gateImg) p.image(gateImg, gX, gY, gW, gH);
@@ -301,7 +301,7 @@
             p.fill(0); p.textSize(18);
             p.text("A", cA, startY - 17);
             p.text("B", cB, startY - 17);
-            p.text("S", cS, startY - 17);
+            p.text("C", cS, startY - 17);
 
             // top row line
             p.stroke(0); p.strokeWeight(1);
