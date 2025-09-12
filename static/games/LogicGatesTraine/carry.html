@@ -8,27 +8,39 @@
     <style>
       @font-face {
         font-family: "Vazir";
-        src: url("https://cdn.fontcdn.ir/Font/Persian/Vazir/Vazir.woff")
-          format("woff");
+        src: url("https://cdn.fontcdn.ir/Font/Persian/Vazir/Vazir.woff") format("woff");
         font-display: swap;
       }
-      :root { --fs-base: clamp(13px, 0.9vw + 0.25rem, 18px); --fs-lg: calc(var(--fs-base) * 1.125); }
+      :root { --fs-base: clamp(13px, 0.9vw + 0.25rem, 18px); --gap: 8px; }
       html, body { height: 100%; }
       body {
         margin: 0; background: #fff;
         font-family: Vazir, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         font-size: var(--fs-base);
         display: flex; align-items: center; justify-content: center;
-        overflow-x: hidden; padding: 8px;
+        padding: var(--gap);
       }
-      .wrap {
-        width: 100%; max-width: 1100px;
-        display: flex; gap: 2px; align-items: center; justify-content: center; flex-wrap: wrap;
+
+      .wrap { width: 100%; max-width: 1100px; margin-inline: auto; }
+      .row {
+        display: flex;
+        gap: var(--gap);
+        align-items: center;
+        justify-content: center;   /* centered on wide screens */
+        flex-wrap: nowrap;         /* keep single row */
       }
-      .body { width: 100%; height: 420px; max-width: 410px; }
+      /* shrink without horizontal scroll on narrow screens */
+      .body {
+        flex: 1 1 0;
+        min-width: 0;
+        max-width: 410px;
+        aspect-ratio: 1 / 1;       /* height follows width */
+        height: auto;
+      }
+
       canvas { display: block; width: 100%; height: 100%; }
 
-      .result { width: 100%; text-align: center; margin-top: 8px; font-weight: 700; min-height: 1.8rem; }
+      .result { width: 100%; text-align: center; margin-top: var(--gap); font-weight: 700; min-height: 1.8rem; }
       .ok { color: #16a34a; }
       .warn { color: #dc2626; }
 
@@ -47,8 +59,10 @@
   </head>
   <body>
     <div class="wrap" dir="ltr">
-      <div class="body"><div id="circuit" style="width: 100%; height: 100%"></div></div>
-      <div class="body"><div id="truth-table" style="width: 100%; height: 100%"></div></div>
+      <div class="row">
+        <div class="body"><div id="circuit" style="width: 100%; height: 100%"></div></div>
+        <div class="body"><div id="truth-table" style="width: 100%; height: 100%"></div></div>
+      </div>
       <div id="resultMsg" class="result" dir="rtl"></div>
     </div>
 
@@ -80,6 +94,8 @@
         return { s, ox, oy, w, h, baseW, baseH };
       }
       const GREEN = [46, 204, 113], RED = [242, 80, 58];
+
+      // Truth table for AND
       const tableRows = [
         { a: 0, b: 0, s: 0 },
         { a: 1, b: 0, s: 0 },
@@ -87,7 +103,9 @@
         { a: 1, b: 1, s: 1 },
       ];
       const inputs = { a: 0, b: 0 };
-      function expectedSum(a, b) { return a ^ b; } // XOR
+
+      // C = A AND B
+      function expectedC(a, b) { return a & b; }
 
       const gatePaths = { AND:"and.png", OR:"or.png", XOR:"xor.png", NAND:"nand.png", NOR:"nor.png" };
 
@@ -123,7 +141,7 @@
           el.textContent = "آفرین! پاسخ صحیح است";
           el.className = "result ok";
         } else if (gate) {
-          el.textContent = ""; // فقط هایلایت
+          el.textContent = "";
           el.className = "result warn";
         } else {
           el.textContent = "";
@@ -165,22 +183,16 @@
             p.fill(50); p.textSize(Math.min(h, 20)); p.text(label, x + w / 2, y - 12);
           }
 
-          // dashed selection with colored fill + border
           function dashedRectColored(x, y, w, h, r, strokeRGB, fillRGBA) {
             const ctx = p.drawingContext;
-            // background fill (light green/red)
             if (fillRGBA) { p.noStroke(); p.fill(...fillRGBA); p.rect(x, y, w, h, r); }
-            // dashed outline
-            ctx.save();
-            ctx.setLineDash([5, 5]);
+            ctx.save(); ctx.setLineDash([5, 5]);
             p.noFill();
             if (strokeRGB) p.stroke(...strokeRGB); else p.stroke(0);
-            p.strokeWeight(1.5);
-            p.rect(x, y, w, h, r);
+            p.strokeWeight(1.5); p.rect(x, y, w, h, r);
             ctx.restore();
           }
 
-          // elbow + straight
           function elbowRVR(xStart, yStart, xGateLeft, yGate, inside = 12) {
             const vLen = Math.abs(yGate - yStart);
             let xMid = xGateLeft + inside - vLen;
@@ -193,7 +205,6 @@
           }
           function straight(x1, y1, x2, y2) { p.stroke(0); p.strokeWeight(2.5); p.noFill(); p.line(x1, y1, x2, y2); }
 
-          // layout
           const W = BASE_W, H = BASE_H;
           const leftX = 100, rightX = W - 80;
           const ioSize = 20;
@@ -211,40 +222,30 @@
 
             p.push(); p.translate(view.ox, view.oy); p.scale(view.s);
 
-            // gate size: max 80×80, never upscale
             if (gateImg) {
               const s = Math.min(1, 80 / gateImg.width, 80 / gateImg.height);
               gW = Math.round(gateImg.width * s);
               gH = Math.round(gateImg.height * s);
             }
 
-            // wires
             elbowRVR(leftX + ioSize, aY, gX, gY + gH * 0.35, 14);
             elbowRVR(leftX + ioSize, bY, gX, gY + gH * 0.65, 14);
             straight(gX + gW, sY, rightX - ioSize, sY);
 
-            // IO boxes
             drawIOBox(leftX, aY - ioSize / 2, ioSize, ioSize, inputs.a, "A");
             drawIOBox(leftX, bY - ioSize / 2, ioSize, ioSize, inputs.b, "B");
-            const sumVal = expectedSum(inputs.a, inputs.b);
-            drawIOBox(rightX - ioSize, sY - ioSize / 2, ioSize, ioSize, sumVal, "C");
+            const cVal = expectedC(inputs.a, inputs.b);
+            drawIOBox(rightX - ioSize, sY - ioSize / 2, ioSize, ioSize, cVal, "C");
 
-            // gate image
             if (gateImg) p.image(gateImg, gX, gY, gW, gH);
 
-            // colored selection box based on correctness
             let strokeCol = [0,0,0], fillCol = null;
             const gate = window.__selectedGate__;
             const mism = Array.isArray(window.__mismatches__) ? window.__mismatches__ : [];
             if (gate) {
               const correct = gate === "AND" && mism.length === 0;
-              if (correct) {
-                strokeCol = [22,163,74];            // green
-                fillCol   = [22,163,74,40];         // light green alpha
-              } else {
-                strokeCol = [220,38,38];            // red
-                fillCol   = [220,38,38,40];         // light red alpha
-              }
+              if (correct) { strokeCol = [22,163,74]; fillCol = [22,163,74,40]; }
+              else { strokeCol = [220,38,38]; fillCol = [220,38,38,40]; }
             }
             dashedRectColored(gX - 6, gY - 6, gW + 12, gH + 12, 8, strokeCol, fillCol);
 
@@ -297,34 +298,29 @@
             p.clear(); p.background(255);
             p.push(); p.translate(view.ox, view.oy); p.scale(view.s);
 
-            // headers
             p.fill(0); p.textSize(18);
             p.text("A", cA, startY - 17);
             p.text("B", cB, startY - 17);
             p.text("C", cS, startY - 17);
 
-            // top row line
             p.stroke(0); p.strokeWeight(1);
             p.line(cA - 12, startY - 8, cS + 12, startY - 8);
 
-            // vertical guides
             const yTop = startY - 30, yBot = startY + 3 * rowGap + cellH + 10;
             p.line((cA + cB) / 2, yTop, (cA + cB) / 2, yBot);
             p.line((cB + cS) / 2, yTop, (cB + cS) / 2, yBot);
 
-            // mismatch highlighting
             const mism = Array.isArray(window.__mismatches__) ? window.__mismatches__ : [];
             for (let i = 0; i < tableRows.length; i++) {
               const y = startY + i * rowGap;
 
               if (mism.includes(i)) {
                 p.noStroke();
-                p.fill(255, 220, 220, 180); // قرمز کم‌رنگ
+                p.fill(255, 220, 220, 180);
                 const pad = 20;
                 p.rect(cA - cellW / 2 - pad, y - 2.5, (cS - cA) + cellW + 2 * pad, cellH + 6, 15);
               }
 
-              // cells
               cell(cA, y, tableRows[i].a);
               cell(cB, y, tableRows[i].b);
               cell(cS, y, tableRows[i].s);
@@ -347,7 +343,6 @@
           window.__gatePath__ = gatePaths[gate] || null;
           window.__gateDirty__ = !!window.__gatePath__;
 
-          // compute mismatches vs XOR truth table
           window.__mismatches__ = computeMismatches(gate);
           setResultMessage(gate);
 
