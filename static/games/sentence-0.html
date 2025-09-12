@@ -10,7 +10,11 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     html,body{background:transparent!important;font-family:"Vazirmatn",sans-serif}
-    .token{user-select:none;cursor:grab; touch-action:none; -webkit-user-drag:none}
+    .token{user-select:none;cursor:grab;touch-action:none}
+    /* only disable WebKit native drag on coarse pointers (touch) */
+    @media (pointer: coarse){
+      .token{-webkit-user-drag:none}
+    }
     .token:active{cursor:grabbing}
     .slot{min-width:72px;min-height:40px;border:2px dashed #d1d5db;border-radius:10px;padding:6px 10px;margin:6px;display:flex;align-items:center;justify-content:center;transition:.12s}
     .slot.hover{border-color:#6366f1;background:#eef2ff}
@@ -54,6 +58,14 @@ const sentenceArea = document.getElementById("sentenceArea");
 const resultMsg = document.getElementById("resultMsg");
 document.getElementById("resetBtn").addEventListener("click", resetGame);
 
+/* one-time DnD listeners for bank container */
+wordBank.addEventListener("dragover", e=>{ e.preventDefault(); if(e.dataTransfer) e.dataTransfer.dropEffect="move"; });
+wordBank.addEventListener("drop", e => {
+  e.preventDefault();
+  const data = safeParse(e.dataTransfer.getData("text/plain"));
+  applyDrop(data, "bank");
+});
+
 function uid(){ return Math.random().toString(36).slice(2,10); }
 function shuffle(a){ return a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]); }
 
@@ -82,22 +94,17 @@ function validate(){
 /* ---------- Rendering ---------- */
 function renderBank(){
   wordBank.innerHTML="";
-  wordBank.addEventListener("dragover", e=>{ e.preventDefault(); });
-  wordBank.addEventListener("drop", e => {
-    e.preventDefault();
-    const data = safeParse(e.dataTransfer.getData("text/plain"));
-    applyDrop(data, "bank");
-  });
-
   bankWords.forEach(w=>{
-    const b=document.createElement("button");
+    const b=document.createElement("div");         // div instead of button
+    b.setAttribute("role","button");
+    b.tabIndex = 0;
     b.className="token bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium px-4 py-2 rounded-xl shadow transition";
     b.textContent=w.text;
     b.draggable=true;
     b.dataset.origin="bank";
     b.dataset.id=w.id;
-    b.addEventListener("dragstart", dragStart);       // desktop
-    enablePointerDrag(b);                              // touch
+    b.addEventListener("dragstart", dragStart);    // desktop
+    enablePointerDrag(b);                          // touch
     wordBank.appendChild(b);
   });
 }
@@ -109,9 +116,10 @@ function renderSlots(){
     s.className="slot"+(item?" filled":"");
     s.dataset.index=idx;
 
-    s.addEventListener("dragover", e=>{ e.preventDefault(); s.classList.add("hover"); });
+    s.addEventListener("dragover", e=>{ e.preventDefault(); if(e.dataTransfer) e.dataTransfer.dropEffect="move"; s.classList.add("hover"); });
     s.addEventListener("dragleave", ()=> s.classList.remove("hover"));
     s.addEventListener("drop", e=>{
+      e.preventDefault();                         // required for Chrome
       s.classList.remove("hover");
       const data = safeParse(e.dataTransfer.getData("text/plain"));
       applyDrop(data, "slot", idx);
@@ -125,8 +133,8 @@ function renderSlots(){
       t.dataset.origin="slot";
       t.dataset.slotIndex=idx;
       t.dataset.id=item.id;
-      t.addEventListener("dragstart", dragStart);     // desktop
-      enablePointerDrag(t);                            // touch
+      t.addEventListener("dragstart", dragStart); // desktop
+      enablePointerDrag(t);                        // touch
       s.appendChild(t);
     }else{
       const ph=document.createElement("span");
