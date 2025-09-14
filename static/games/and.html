@@ -54,7 +54,6 @@
         }
       }
 
-      /* Bigger circuit on small screens */
       @media (max-width: 480px) {
         .card--circuit {
           height: calc(var(--box-h) + 140px);
@@ -186,6 +185,24 @@
     </div>
 
     <script>
+      // ====== success sound ======
+      function playSuccess() {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        const ctx = new Ctx();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = "sine";
+        o.frequency.value = 880; // A5
+        o.connect(g);
+        g.connect(ctx.destination);
+        const t = ctx.currentTime;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.2, t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+        o.start(t);
+        o.stop(t + 0.37);
+      }
+
       // ====== shared state ======
 
       // inputs
@@ -221,7 +238,6 @@
       }
 
       function highlightedIndex() {
-        // find the row whose inputs match the circuit inputs
         for (let i = 0; i < table.length; i++) {
           if (table[i].i1 === inputs.i1 && table[i].i2 === inputs.i2) return i;
         }
@@ -244,6 +260,8 @@
             c3 = c2 + 70,
             c4 = c3 + 70;
 
+          let ttAllValid = false; // lock and sound gate
+
           p.setup = function () {
             const r = document
               .getElementById("truth-table")
@@ -258,6 +276,15 @@
           };
 
           p.draw = function () {
+            const currentAllValid =
+              table[0].o === 0 &&
+              table[1].o === 0 &&
+              table[2].o === 0 &&
+              table[3].o === 1;
+
+            if (currentAllValid && !ttAllValid) playSuccess();
+            ttAllValid = currentAllValid;
+
             view = fitToParentCanvas(p, "truth-table", BASE_W, BASE_H);
             p.clear();
             p.background(255);
@@ -287,17 +314,16 @@
 
             for (let i = 0; i < table.length; i++) {
               const y = startY + i * rowGap;
-              const canEdit = i === hi;
-              const dim = !canEdit;
+              const canEdit = i === hi && !ttAllValid;
+              const dim = i !== hi && !ttAllValid;
 
               // highlight row
-              if (canEdit) {
+              if (canEdit && !ttAllValid) {
                 const x = c1 - 32,
                   w = c4,
-                  h = cellH + 16,
+                  h = cellH + 23,
                   r = 10;
 
-                // behind content
                 p.push();
                 const ctx = p.drawingContext;
                 ctx.save();
@@ -308,7 +334,6 @@
                 ctx.restore();
                 p.pop();
 
-                // animated dotted border
                 p.push();
                 const dash = 6,
                   gap = 6;
@@ -353,12 +378,16 @@
               p.stroke(outVal ? p.color(46, 204, 113) : p.color(242, 80, 58));
               p.strokeWeight(canEdit ? 3 : 1.5);
               if (dim) p.stroke(170);
-              p.fill(canEdit ? 255 : 232); // light gray when disabled
+              p.fill(canEdit ? 255 : 232);
               p.rect(c3 - cellW / 2, y, cellW, cellH, 10);
 
               p.noStroke();
-              p.fill(dim ? 80 : 0); // gray text when disabled
+              p.fill(dim ? 80 : 0);
               p.text(outVal, c3, y + cellH / 2);
+              if (canEdit && !ttAllValid) {
+                p.textSize(10);
+                p.text("کلیک کنید!", c3, y + cellH + 10);
+              }
 
               // result
               const expected = table[i].i1 & table[i].i2;
@@ -376,15 +405,10 @@
               p.pop();
             }
 
-            const allValid =
-              table[0].o === 0 &&
-              table[1].o === 0 &&
-              table[2].o === 0 &&
-              table[3].o === 1;
             p.textSize(16);
-            p.fill(allValid ? p.color(46, 204, 113) : p.color(242, 80, 58));
+            p.fill(ttAllValid ? p.color(46, 204, 113) : p.color(242, 80, 58));
             p.text(
-              allValid ? "پاسخ درست است" : "پاسخ نادرست است",
+              ttAllValid ? "پاسخ درست است" : "پاسخ نادرست است",
               (c2 + c3) / 2,
               350
             );
@@ -393,9 +417,10 @@
           };
 
           p.mousePressed = function () {
+            if (ttAllValid) return; // lock after success
+
             const mx = (p.mouseX - view.ox) / view.s;
             const my = (p.mouseY - view.oy) / view.s;
-
 
             const hi = highlightedIndex();
             if (hi < 0) return;
@@ -593,7 +618,6 @@
             if (d1 < 20) switch1On = !switch1On;
             if (d2 < 20) switch2On = !switch2On;
 
-            // update shared inputs for the table highlight
             inputs.i1 = switch1On ? 1 : 0;
             inputs.i2 = switch2On ? 1 : 0;
           }
