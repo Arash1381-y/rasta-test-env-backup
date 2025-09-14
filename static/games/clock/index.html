@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title> ساعت </title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.2/p5.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Vazir:wght@300;400;500;600;700&display=swap');
+
+body {
+  font-family: 'Vazir', Tahoma, sans-serif;
+  background-color: #ffffff;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type=number] {
+  -moz-appearance: textfield;
+}
+</style>
+</head>
+
+<body class="min-h-screen bg-white">
+<div class="container mx-auto px-4 py-8">
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8 max-w-4xl mx-auto">
+    <div class="bg-white rounded-lg shadow-lg p-6">
+      <h3 class="text-lg font-semibold text-center mb-4 text-gray-700">ساعت واقعی</h3>
+      <div id="realClock" class="flex justify-center"></div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-lg p-6">
+      <h3 class="text-lg font-semibold text-center mb-4 text-gray-700">ساعت شما</h3>
+      <div id="userClock" class="flex justify-center"></div>
+    </div>
+  </div>
+
+  <div class="max-w-md mx-auto bg-white rounded-lg shadow-lg p-6">
+    <div class="grid grid-cols-3 gap-3 mb-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1 text-center">ثانیه</label>
+        <input id="s" type="number" min="0" max="59" placeholder="0-59"
+               class="w-full p-3 border border-gray-300 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1 text-center">دقیقه</label>
+        <input id="m" type="number" min="0" max="59" placeholder="0-59"
+               class="w-full p-3 border border-gray-300 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1 text-center">ساعت</label>
+        <input id="h" type="number" min="0" max="12" placeholder="0-12"
+               class="w-full p-3 border border-gray-300 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400">
+      </div>
+    </div>
+
+    <div class="flex gap-3">
+      <button id="syncBtn"
+              class="flex-1 bg-green-400 hover:bg-green-500 text-white font-medium py-3 px-4 rounded-lg transition-colors">
+        هماهنگ کن
+      </button>
+      <button id="resetBtn"
+              class="flex-1 bg-red-400 hover:bg-red-500 text-white font-medium py-3 px-4 rounded-lg transition-colors">
+        تلاش مجدد
+      </button>
+    </div>
+
+    <div id="result" class="mt-4 p-3 rounded-lg text-center font-medium text-gray-800"></div>
+  </div>
+</div>
+
+<script>
+let userH=0,userM=0,userS=0;
+let userRunning=false,useRealClock=false;
+let startH=0,startM=0,startS=0,startTime=0;
+
+function ClockSketch(parentId,isUserClock=false){
+  return function(p){
+    p.setup=function(){
+      const canvas=p.createCanvas(300,300);
+      canvas.parent(parentId);
+      p.angleMode(p.RADIANS);
+      p.textAlign(p.CENTER,p.CENTER);
+    }
+
+    p.draw=function(){
+      p.background(255);
+
+      let hh,mm,ss;
+      if(isUserClock){
+        if(useRealClock){ hh=p.hour()%12; mm=p.minute(); ss=p.second(); }
+        else if(userRunning){
+          let now=new Date();
+          let diff=now-startTime;
+          let secAdd=Math.floor(diff/1000);
+          let totalSec=startH*3600+startM*60+startS+secAdd;
+          hh=Math.floor(totalSec/3600)%12;
+          mm=Math.floor(totalSec/60)%60;
+          ss=totalSec%60;
+        }else{ hh=userH; mm=userM; ss=userS; }
+      }else{ hh=p.hour()%12; mm=p.minute(); ss=p.second(); }
+
+      drawClock(p,hh,mm,ss);
+    }
+
+    function drawClock(p,hh,mm,ss){
+      const cx=p.width/2,cy=p.height/2;
+
+      // Digital time
+      p.textSize(24); p.fill(50); p.noStroke();
+      p.text(`${p.nf(hh,2)}:${p.nf(mm,2)}:${p.nf(ss,2)}`,cx,cy);
+
+      // Outer ring - ثانیه
+      p.strokeWeight(35);
+      p.noFill();
+      p.stroke(240,240,240,150); // پس‌زمینه کم‌رنگ
+      p.ellipse(cx,cy,260,260);
+      let sAngle=p.map(ss,0,60,0,p.TWO_PI);
+      p.stroke(231,156,20); // جلو پررنگ (همان رنگ قبلی)
+      p.arc(cx,cy,260,260,-p.HALF_PI,sAngle-p.HALF_PI);
+
+      // Middle ring - دقیقه
+      p.strokeWeight(30);
+      p.stroke(235,235,235,150);
+      p.ellipse(cx,cy,210,210);
+      let mAngle=p.map(mm+(ss/60),0,60,0,p.TWO_PI);
+      p.stroke(52,152,219); // جلو پررنگ (همان رنگ قبلی)
+      p.arc(cx,cy,210,210,-p.HALF_PI,mAngle-p.HALF_PI);
+
+      // Inner ring - ساعت
+      p.strokeWeight(25);
+      p.stroke(230,230,230,150);
+      p.ellipse(cx,cy,160,160);
+      let hAngle=p.map((hh%12)+(mm/60),0,12,0,p.TWO_PI);
+      p.stroke(46,204,113); // جلو پررنگ (همان رنگ قبلی)
+      p.arc(cx,cy,160,160,-p.HALF_PI,hAngle-p.HALF_PI);
+    }
+  }
+}
+
+new p5(ClockSketch('realClock',false));
+new p5(ClockSketch('userClock',true));
+
+const hourInput=document.getElementById("h");
+const minuteInput=document.getElementById("m");
+const secondInput=document.getElementById("s");
+
+hourInput.addEventListener("input",e=>{let v=parseInt(e.target.value)||0;userH=Math.min(Math.max(v,0),12);if(v>12)e.target.value=12;});
+minuteInput.addEventListener("input",e=>{let v=parseInt(e.target.value)||0;userM=Math.min(Math.max(v,0),59);if(v>59)e.target.value=59;});
+secondInput.addEventListener("input",e=>{let v=parseInt(e.target.value)||0;userS=Math.min(Math.max(v,0),59);if(v>59)e.target.value=59;});
+
+document.getElementById("syncBtn").addEventListener("click",()=>{
+  const result=document.getElementById("result");
+  const now=new Date();
+  const ch=now.getHours()%12,cm=now.getMinutes(),cs=now.getSeconds();
+  if(userH===ch && userM===cm && Math.abs(userS-cs)<=1){
+    result.textContent="✅ موفق شدید!";
+    result.className="mt-4 p-3 rounded-lg text-center font-medium bg-green-100 text-green-800";
+    useRealClock=true; userRunning=false;
+  }else{
+    result.textContent="❌ دوباره تلاش کنید!";
+    result.className="mt-4 p-3 rounded-lg text-center font-medium bg-red-100 text-red-800";
+    startH=userH; startM=userM; startS=userS; startTime=new Date(); userRunning=true; useRealClock=false;
+  }
+});
+
+document.getElementById("resetBtn").addEventListener("click",()=>{
+  userH=userM=userS=0; userRunning=false; useRealClock=false; startH=startM=startS=0; startTime=new Date();
+  hourInput.value=""; minuteInput.value=""; secondInput.value="";
+  const result=document.getElementById("result"); result.textContent=""; result.className="mt-4 p-3 rounded-lg text-center font-medium text-gray-800";
+});
+</script>
+</body>
+</html>
