@@ -17,10 +17,9 @@
 </head>
 <body>
 <script>
-let switchState = false; // false = قطع، true = وصل
-let inputValue = 0;      // ورودی 0 یا 1
+let switchState = false; 
+let inputValue = 0;      
 
-// موقعیت و اندازه نسبی
 let switchX, switchY, switchSize;
 let ledX, ledY, ledR;
 let inputX, inputY, inputSize;
@@ -41,7 +40,6 @@ function createResponsiveCanvas() {
   let h = w * 0.6;
   resizeCanvas(w, h);
 
-  // محاسبه موقعیت و اندازه نسبی
   switchX = w * 0.4;
   switchY = h * 0.5;
   switchSize = w * 0.14;
@@ -60,14 +58,12 @@ function draw() {
   stroke(50);
   strokeWeight(width*0.008);
 
-  // ورودی (مربع)
   fill(inputValue === 1 ? '#4caf50' : '#ddd');
   rect(inputX, inputY, inputSize, inputSize, 5);
   fill(50);
   textSize(width*0.06);
   text(inputValue, inputX, inputY);
 
-  // سوئیچ لوزی
   noStroke();
   fill('#ccc');
   push();
@@ -80,31 +76,25 @@ function draw() {
   strokeWeight(width*0.008);
 
   if(switchState){
-    // وصل: خط مستقیم
     line(inputX + inputSize/2, inputY, ledX - ledR, ledY);
   } else {
-    // قطع: خط افقی قبل از سوئیچ
     let leftDiamondX = switchX - switchSize/2 * cos(PI/4);
     line(inputX + inputSize/2, inputY, leftDiamondX, inputY);
 
-    // خط بعد از سوئیچ به بالا (شکست)
     let midX = (leftDiamondX - width*0.25 + ledX - ledR)/2;
     let midY = switchY - width*0.07;
     line(leftDiamondX, switchY, midX, midY);
 
-    // خط سوم: از آخر لوزی تا خروجی
     let rightDiamondX = switchX + switchSize/2 * cos(PI/4);
     line(rightDiamondX, switchY, ledX - ledR, ledY);
   }
 
-  // LED خروجی
   fill(switchState && inputValue===1 ? '#4caf50' : '#ddd');
   ellipse(ledX, ledY, ledR*2, ledR*2);
   textSize(width*0.08);
   text(switchState ? inputValue : '?', ledX, ledY);
 }
 
-// کلیک روی سوئیچ یا ورودی
 function mousePressed() {
   let dx = abs(mouseX - switchX);
   let dy = abs(mouseY - switchY);

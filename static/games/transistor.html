@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<script src="https://cdn.jsdelivr.net/npm/p5@1.6.0/lib/p5.min.js"></script>
+<style>
+  body { margin:0; padding:0; display:flex; justify-content:center; align-items:center; height:100vh; }
+  canvas { display:block; cursor: default; }
+</style>
+</head>
+<body>
+<script>
+let switchState = false;
+let inputValue = 0;
+
+let switchX, switchY, switchSize;
+let ledX, ledY, ledR;
+let inputX, inputY, inputSize;
+let ctrlX, ctrlY, ctrlSize;
+
+function setup() {
+  createResponsiveCanvas();
+  rectMode(CENTER);
+  textAlign(CENTER, CENTER);
+}
+
+function windowResized() {
+  createResponsiveCanvas();
+}
+
+function createResponsiveCanvas() {
+  let w = windowWidth * 0.9;
+  if (w > 600) w = 500;
+  let h = w * 0.6;
+
+  if (!this._renderer) createCanvas(w, h);
+  else resizeCanvas(w, h);
+
+  switchX = w * 0.4;
+  switchY = h * 0.5;
+  switchSize = w * 0.14;
+
+  ledX = w * 0.8;
+  ledY = h * 0.5;
+  ledR = w * 0.05;
+
+  inputX = w * 0.1;
+  inputY = h * 0.5;
+  inputSize = w * 0.09;
+
+  ctrlX = switchX;
+  ctrlY = switchY - switchSize * 1.6;
+  ctrlSize = inputSize;
+}
+
+function draw() {
+  background(255);
+
+  // wire input (left)
+  stroke(50);
+  strokeWeight(width * 0.008);
+  fill(inputValue === 1 ? '#4caf50' : '#ddd');
+  rect(inputX, inputY, inputSize, inputSize, 5);
+  noStroke();
+  fill(50);
+  textSize(width * 0.06);
+  text(inputValue, inputX, inputY);
+
+  // switch control (above diamond)
+  stroke(50);
+  strokeWeight(width * 0.008);
+  fill(switchState ? '#4caf50' : '#ddd');
+  rect(ctrlX, ctrlY, ctrlSize, ctrlSize, 5);
+  noStroke();
+  fill(50);
+  textSize(width * 0.06);
+  text(switchState ? 1 : 0, ctrlX, ctrlY);
+
+  // diamond
+  noStroke();
+  fill('#ccc');
+  push();
+  translate(switchX, switchY);
+  rotate(PI / 4);
+  rect(0, 0, switchSize, switchSize, 10);
+  pop();
+
+  // connect control input to diamond
+  stroke(50);
+  strokeWeight(width * 0.008);
+  line(ctrlX, ctrlY + ctrlSize/2, switchX, switchY - switchSize/2 -6);
+
+  // main wiring
+  if (switchState) {
+    line(inputX + inputSize / 2, inputY, ledX - ledR, ledY);
+  } else {
+    let leftDiamondX = switchX - (switchSize / 2) * cos(PI / 4);
+    line(inputX + inputSize / 2, inputY, leftDiamondX, inputY);
+
+    let midX = (leftDiamondX - width * 0.25 + ledX - ledR) / 2;
+    let midY = switchY - width * 0.07;
+    line(leftDiamondX, switchY, midX, midY);
+
+    let rightDiamondX = switchX + (switchSize / 2) * cos(PI / 4);
+    line(rightDiamondX, switchY, ledX - ledR, ledY);
+  }
+
+  // LED
+  noStroke();
+  fill(switchState && inputValue === 1 ? '#4caf50' : '#ddd');
+  ellipse(ledX, ledY, ledR * 2, ledR * 2);
+  fill(50);
+  textSize(width * 0.08);
+  text(switchState ? inputValue : '?', ledX, ledY);
+}
+
+function mousePressed() {
+  const insideInput =
+    mouseX > inputX - inputSize / 2 && mouseX < inputX + inputSize / 2 &&
+    mouseY > inputY - inputSize / 2 && mouseY < inputY + inputSize / 2;
+
+  const insideCtrl =
+    mouseX > ctrlX - ctrlSize / 2 && mouseX < ctrlX + ctrlSize / 2 &&
+    mouseY > ctrlY - ctrlSize / 2 && mouseY < ctrlY + ctrlSize / 2;
+
+  if (insideInput) {
+    inputValue = inputValue === 0 ? 1 : 0;
+  }
+
+  if (insideCtrl) {
+    switchState = !switchState;
+  }
+}
+</script>
+</body>
+</html>
