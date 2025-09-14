@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>جمع (Sum) — انتخاب گیت</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+    <style>
+      @font-face {
+        font-family: "Vazir";
+        src: url("https://cdn.fontcdn.ir/Font/Persian/Vazir/Vazir.woff")
+          format("woff");
+        font-display: swap;
+      }
+      :root { --fs-base: clamp(13px, 0.9vw + 0.25rem, 18px); --fs-lg: calc(var(--fs-base) * 1.125); }
+      html, body { height: 100%; }
+      body {
+        margin: 0; background: #fff;
+        font-family: Vazir, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        font-size: var(--fs-base);
+        display: flex; align-items: center; justify-content: center;
+        overflow-x: hidden; padding: 8px;
+      }
+      .wrap {
+        width: 100%; max-width: 1100px;
+        display: flex; gap: 2px; align-items: center; justify-content: center; flex-wrap: wrap;
+      }
+      .body { width: 100%; height: 420px; max-width: 410px; }
+      canvas { display: block; width: 100%; height: 100%; }
+
+      .result { width: 100%; text-align: center; margin-top: 8px; font-weight: 700; min-height: 1.8rem; }
+      .ok { color: #16a34a; }
+      .warn { color: #dc2626; }
+
+      .modal {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+        display: none; align-items: center; justify-content: center; z-index: 50;
+      }
+      .modal.active { display: flex; }
+      .modal-card { background: #fff; border-radius: 14px; width: min(92vw, 520px); padding: 12px; position: relative; }
+      .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+      .pick { border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+      .pick:hover { background: #f6f8ff; }
+      .pick img { width: 64px; height: 64px; object-fit: contain; }
+      .close { position: absolute; left: 12px; top: 10px; border: none; background: transparent; cursor: pointer; font-size: 18px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap" dir="ltr">
+      <div class="body"><div id="circuit" style="width: 100%; height: 100%"></div></div>
+      <div class="body"><div id="truth-table" style="width: 100%; height: 100%"></div></div>
+      <div id="resultMsg" class="result" dir="rtl"></div>
+    </div>
+
+    <!-- gate picker modal -->
+    <div id="gateModal" class="modal">
+      <div class="modal-card">
+        <button id="closeModal" class="close">✕</button>
+        <div style="text-align: center; margin: 6px 0 10px 0; font-weight: 700">یک گیت انتخاب کنید</div>
+        <div class="grid">
+          <div class="pick" data-gate="XOR"  title="XOR"><img src="xor.png"  alt="XOR" /></div>
+          <div class="pick" data-gate="NAND" title="NAND"><img src="nand.png" alt="NAND" /></div>
+          <div class="pick" data-gate="AND"  title="AND"><img src="and.png"  alt="AND" /></div>
+          <div class="pick" data-gate="OR"   title="OR"><img src="or.png"   alt="OR" /></div>
+          <div class="pick" data-gate="NOR"  title="NOR"><img src="nor.png"  alt="NOR" /></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // shared
+      function fitToParentCanvas(p, parentId, baseW = 420, baseH = 420) {
+        const el = document.getElementById(parentId);
+        const r = el.getBoundingClientRect();
+        const w = Math.max(10, Math.floor(r.width));
+        const h = Math.max(10, Math.floor(r.height));
+        if (p._renderer) p.resizeCanvas(w, h);
+        const sx = w / baseW, sy = h / baseH, s = Math.min(sx, sy);
+        const ox = (w - baseW * s) / 2, oy = (h - baseH * s) / 2;
+        return { s, ox, oy, w, h, baseW, baseH };
+      }
+      const GREEN = [46, 204, 113], RED = [242, 80, 58];
+      const tableRows = [
+        { a: 0, b: 0, s: 0 },
+        { a: 1, b: 0, s: 0 },
+        { a: 0, b: 1, s: 0 },
+        { a: 1, b: 1, s: 1 },
+      ];
+      const inputs = { a: 0, b: 0 };
+      function expectedSum(a, b) { return a ^ b; } // XOR
+
+      const gatePaths = { AND:"and.png", OR:"or.png", XOR:"xor.png", NAND:"nand.png", NOR:"nor.png" };
+
+      // global state
+      window.__gatePath__ = null;
+      window.__gateDirty__ = false;
+      window.__selectedGate__ = null;
+      window.__mismatches__ = [];
+
+      function gateEval(gate, a, b) {
+        switch (gate) {
+          case "AND":  return a & b;
+          case "OR":   return a | b;
+          case "XOR":  return a ^ b;
+          case "NAND": return 1 - (a & b);
+          case "NOR":  return 1 - (a | b);
+          default: return null;
+        }
+      }
+      function computeMismatches(gate) {
+        const mism = [];
+        for (let i = 0; i < tableRows.length; i++) {
+          const { a, b, s } = tableRows[i];
+          const out = gateEval(gate, a, b);
+          if (out === null) continue;
+          if (out !== s) mism.push(i);
+        }
+        return mism;
+      }
+      function setResultMessage(gate) {
+        const el = document.getElementById("resultMsg");
+        if (gate === "AND") {
+          el.textContent = "آفرین! پاسخ صحیح است";
+          el.className = "result ok";
+        } else if (gate) {
+          el.textContent = ""; // فقط هایلایت
+          el.className = "result warn";
+        } else {
+          el.textContent = "";
+          el.className = "result";
+        }
+      }
+
+      // ---- Circuit (p5) ----
+      (function () {
+        const sketch = function (p) {
+          const BASE_W = 420, BASE_H = 420;
+          let view = { s: 1, ox: 0, oy: 0 };
+          let gateImg = null, currentPath = null, loading = false;
+
+          p.setup = function () {
+            const r = document.getElementById("circuit").getBoundingClientRect();
+            p.createCanvas(r.width || BASE_W, r.height || BASE_H);
+            p.textAlign(p.CENTER, p.CENTER);
+            p.textFont("Vazir");
+          };
+          p.windowResized = function () { view = fitToParentCanvas(p, "circuit", BASE_W, BASE_H); };
+
+          function maybeLoadGate() {
+            if (window.__gateDirty__ && window.__gatePath__ && window.__gatePath__ !== currentPath && !loading) {
+              loading = true;
+              const path = window.__gatePath__;
+              p.loadImage(
+                path,
+                (img) => { gateImg = img; currentPath = path; loading = false; window.__gateDirty__ = false; },
+                ()   => { gateImg = null; currentPath = null; loading = false; window.__gateDirty__ = false; }
+              );
+            }
+          }
+
+          function drawIOBox(x, y, w, h, val, label) {
+            const col = val ? [46, 204, 113] : [242, 80, 58];
+            p.noStroke(); p.fill(...col); p.rect(x, y, w, h, 10);
+            p.fill(255); p.textSize(Math.min(h * 0.55, 18)); p.text(val, x + w / 2, y + h / 2 + 1);
+            p.fill(50); p.textSize(Math.min(h * 0.38, 12)); p.text(label, x + w / 2, y - 12);
+          }
+
+          // dashed selection with colored fill + border
+          function dashedRectColored(x, y, w, h, r, strokeRGB, fillRGBA) {
+            const ctx = p.drawingContext;
+            // background fill (light green/red)
+            if (fillRGBA) { p.noStroke(); p.fill(...fillRGBA); p.rect(x, y, w, h, r); }
+            // dashed outline
+            ctx.save();
+            ctx.setLineDash([5, 5]);
+            p.noFill();
+            if (strokeRGB) p.stroke(...strokeRGB); else p.stroke(0);
+            p.strokeWeight(1.5);
+            p.rect(x, y, w, h, r);
+            ctx.restore();
+          }
+
+          // elbow + straight
+          function elbowRVR(xStart, yStart, xGateLeft, yGate, inside = 12) {
+            const vLen = Math.abs(yGate - yStart);
+            let xMid = xGateLeft + inside - vLen;
+            const minMid = xStart + 10, maxMid = xGateLeft - 8;
+            xMid = Math.max(minMid, Math.min(maxMid, xMid)) - 10;
+            p.stroke(0); p.strokeWeight(2.5); p.noFill();
+            p.line(xStart, yStart, xMid, yStart);
+            p.line(xMid, yStart, xMid, yGate);
+            p.line(xMid, yGate, xGateLeft + inside, yGate);
+          }
+          function straight(x1, y1, x2, y2) { p.stroke(0); p.strokeWeight(2.5); p.noFill(); p.line(x1, y1, x2, y2); }
+
+          // layout
+          const W = BASE_W, H = BASE_H;
+          const leftX = 100, rightX = W - 80;
+          const ioSize = 20;
+
+          let gW = 80, gH = 80;
+          const gX = (W - gW) / 2, gY = (H - gH) / 2;
+          const sY = gY + gH / 2;
+          const aY = sY - 30;
+          const bY = sY + 30;
+
+          p.draw = function () {
+            view = fitToParentCanvas(p, "circuit", BASE_W, BASE_H);
+            p.clear(); p.background(255);
+            maybeLoadGate();
+
+            p.push(); p.translate(view.ox, view.oy); p.scale(view.s);
+
+            // gate size: max 80×80, never upscale
+            if (gateImg) {
+              const s = Math.min(1, 80 / gateImg.width, 80 / gateImg.height);
+              gW = Math.round(gateImg.width * s);
+              gH = Math.round(gateImg.height * s);
+            }
+
+            // wires
+            elbowRVR(leftX + ioSize, aY, gX, gY + gH * 0.35, 14);
+            elbowRVR(leftX + ioSize, bY, gX, gY + gH * 0.65, 14);
+            straight(gX + gW, sY, rightX - ioSize, sY);
+
+            // IO boxes
+            drawIOBox(leftX, aY - ioSize / 2, ioSize, ioSize, inputs.a, "A");
+            drawIOBox(leftX, bY - ioSize / 2, ioSize, ioSize, inputs.b, "B");
+            const sumVal = expectedSum(inputs.a, inputs.b);
+            drawIOBox(rightX - ioSize, sY - ioSize / 2, ioSize, ioSize, sumVal, "S");
+
+            // gate image
+            if (gateImg) p.image(gateImg, gX, gY, gW, gH);
+
+            // colored selection box based on correctness
+            let strokeCol = [0,0,0], fillCol = null;
+            const gate = window.__selectedGate__;
+            const mism = Array.isArray(window.__mismatches__) ? window.__mismatches__ : [];
+            if (gate) {
+              const correct = gate === "AND" && mism.length === 0;
+              if (correct) {
+                strokeCol = [22,163,74];            // green
+                fillCol   = [22,163,74,40];         // light green alpha
+              } else {
+                strokeCol = [220,38,38];            // red
+                fillCol   = [220,38,38,40];         // light red alpha
+              }
+            }
+            dashedRectColored(gX - 6, gY - 6, gW + 12, gH + 12, 8, strokeCol, fillCol);
+
+            p.pop();
+          };
+
+          p.mousePressed = function () {
+            const mx = (p.mouseX - view.ox) / view.s, my = (p.mouseY - view.oy) / view.s;
+
+            if (gateImg) {
+              const s = Math.min(1, 80 / gateImg.width, 80 / gateImg.height);
+              gW = Math.round(gateImg.width * s);
+              gH = Math.round(gateImg.height * s);
+            }
+
+            if (mx > 100 && mx < 120 && my > aY - ioSize / 2 && my < aY + ioSize / 2) { inputs.a = 1 - inputs.a; return; }
+            if (mx > 100 && mx < 120 && my > bY - ioSize / 2 && my < bY + ioSize / 2) { inputs.b = 1 - inputs.b; return; }
+            if (mx > gX && mx < gX + gW && my > gY && my < gY + gH) {
+              document.getElementById("gateModal").classList.add("active");
+            }
+          };
+        };
+        new p5(sketch, "circuit");
+      })();
+
+      // Truth table (p5) with mismatch highlighting
+      (function () {
+        const sketch = function (p) {
+          const BASE_W = 420, BASE_H = 420;
+          let view = { s: 1, ox: 0, oy: 0 };
+          const startY = 150, rowGap = 40, cellW = 30, cellH = 30, colGap = 50;
+          const cA = BASE_W / 2 - colGap, cB = cA + colGap, cS = cB + colGap;
+
+          p.setup = function () {
+            const r = document.getElementById("truth-table").getBoundingClientRect();
+            p.createCanvas(r.width || BASE_W, r.height || BASE_H);
+            p.textAlign(p.CENTER, p.CENTER);
+            p.textFont("Vazir");
+          };
+          p.windowResized = function () { view = fitToParentCanvas(p, "truth-table", BASE_W, BASE_H); };
+
+          function cell(xc, y, v) {
+            const col = v ? GREEN : RED;
+            p.noStroke(); p.fill(...col); p.rect(xc - cellW / 2, y, cellW, cellH, 10);
+            p.fill(255); p.textSize(18); p.text(v, xc, y + cellH / 2 + 1);
+          }
+
+          p.draw = function () {
+            view = fitToParentCanvas(p, "truth-table", BASE_W, BASE_H);
+            p.clear(); p.background(255);
+            p.push(); p.translate(view.ox, view.oy); p.scale(view.s);
+
+            // headers
+            p.fill(0); p.textSize(18);
+            p.text("A", cA, startY - 17);
+            p.text("B", cB, startY - 17);
+            p.text("S", cS, startY - 17);
+
+            // top row line
+            p.stroke(0); p.strokeWeight(1);
+            p.line(cA - 12, startY - 8, cS + 12, startY - 8);
+
+            // vertical guides
+            const yTop = startY - 30, yBot = startY + 3 * rowGap + cellH + 10;
+            p.line((cA + cB) / 2, yTop, (cA + cB) / 2, yBot);
+            p.line((cB + cS) / 2, yTop, (cB + cS) / 2, yBot);
+
+            // mismatch highlighting
+            const mism = Array.isArray(window.__mismatches__) ? window.__mismatches__ : [];
+            for (let i = 0; i < tableRows.length; i++) {
+              const y = startY + i * rowGap;
+
+              if (mism.includes(i)) {
+                p.noStroke();
+                p.fill(255, 220, 220, 180); // قرمز کم‌رنگ
+                const pad = 20;
+                p.rect(cA - cellW / 2 - pad, y - 2.5, (cS - cA) + cellW + 2 * pad, cellH + 6, 15);
+              }
+
+              // cells
+              cell(cA, y, tableRows[i].a);
+              cell(cB, y, tableRows[i].b);
+              cell(cS, y, tableRows[i].s);
+            }
+
+            p.pop();
+          };
+        };
+        new p5(sketch, "truth-table");
+      })();
+
+      // Modal wiring
+      const modal = document.getElementById("gateModal");
+      document.getElementById("closeModal").onclick = () => modal.classList.remove("active");
+
+      document.querySelectorAll(".pick").forEach((el) => {
+        el.onclick = () => {
+          const gate = el.dataset.gate;
+          window.__selectedGate__ = gate;
+          window.__gatePath__ = gatePaths[gate] || null;
+          window.__gateDirty__ = !!window.__gatePath__;
+
+          // compute mismatches vs XOR truth table
+          window.__mismatches__ = computeMismatches(gate);
+          setResultMessage(gate);
+
+          modal.classList.remove("active");
+        };
+      });
+    </script>
+  </body>
+</html>

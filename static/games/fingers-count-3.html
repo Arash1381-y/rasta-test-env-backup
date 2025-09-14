@@ -130,7 +130,7 @@
     function updateTotal(){
       const bits = Array.from({length:4}, (_,i)=>bitOf(i)).join(''); // MSB..LSB
       const dec  = Array.from({length:4}, (_,i)=>valOf(i)).reduce((a,b)=>a+b,0);
-      document.getElementById('total').innerHTML = `(${bits})<sub>2</sub> = ${dec}`;
+      document.getElementById('total').innerHTML = `(${bits})<sub>2</sub> = (${dec})<sub>10</sub>`;
     }
 
     // ====== Render ======
