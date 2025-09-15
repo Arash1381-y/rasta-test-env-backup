@@ -701,14 +701,6 @@
           function handlePress(px, py) {
             const mx = (px - view.ox) / view.s,
               my = (py - view.oy) / view.s;
-            const startY = 60,
-              rowGap = 60,
-              cellW = 40,
-              cellH = 40;
-            const cA = 60,
-              cB = cA + 70,
-              cS = cB + 70,
-              cC = cS + 70;
 
             for (let i = 0; i < rows.length; i++) {
               const y = startY + i * rowGap;
