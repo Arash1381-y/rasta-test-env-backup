@@ -176,11 +176,19 @@
             }
           }
 
-          function drawIOBox(x, y, w, h, val, label) {
+          function drawIOBox(x, y, w, h, val, label, withSubscript=false, subscript="") {
             const col = val ? [46, 204, 113] : [242, 80, 58];
             p.noStroke(); p.fill(...col); p.rect(x, y, w, h, 10);
             p.fill(255); p.textSize(Math.min(h * 0.8, 20)); p.text(val, x + w / 2, y + h / 2 + 1);
             p.fill(50); p.textSize(Math.min(h, 20)); p.text(label, x + w / 2, y - 12);
+
+            if (withSubscript) {
+              // subscript "out"
+              p.push();
+              p.textSize(10); // smaller font for subscript
+              p.text(subscript, x + w / 2 + 14, y - 5); // slight right and down offset
+              p.pop();
+            }
           }
 
           function dashedRectColored(x, y, w, h, r, strokeRGB, fillRGBA) {
@@ -235,7 +243,7 @@
             drawIOBox(leftX, aY - ioSize / 2, ioSize, ioSize, inputs.a, "A");
             drawIOBox(leftX, bY - ioSize / 2, ioSize, ioSize, inputs.b, "B");
             const cVal = expectedC(inputs.a, inputs.b);
-            drawIOBox(rightX - ioSize, sY - ioSize / 2, ioSize, ioSize, cVal, "C");
+            drawIOBox(rightX - ioSize, sY - ioSize / 2, ioSize, ioSize, cVal, "C", true, "out");
 
             if (gateImg) p.image(gateImg, gX, gY, gW, gH);
 
@@ -302,9 +310,16 @@
             p.text("A", cA, startY - 17);
             p.text("B", cB, startY - 17);
             p.text("C", cS, startY - 17);
+            p.text("C", cS, startY - 17);
+
+            // subscript "out"
+            p.push();
+            p.textSize(10); // smaller font for subscript
+            p.text("out", cS + 12, startY - 12); // slight right and down offset
+            p.pop();
 
             p.stroke(0); p.strokeWeight(1);
-            p.line(cA - 12, startY - 8, cS + 12, startY - 8);
+            p.line(cA - 12, startY - 7, cS + 14, startY - 7);
 
             const yTop = startY - 30, yBot = startY + 3 * rowGap + cellH + 10;
             p.line((cA + cB) / 2, yTop, (cA + cB) / 2, yBot);

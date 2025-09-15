@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<script src="https://cdn.jsdelivr.net/npm/p5@1.6.0/lib/p5.min.js"></script>
+<style>
+  html, body { margin:0; height:100%; background:#e9ebee; }
+  body { display:flex; justify-content:center; align-items:center; }
+  canvas { display:block; }
+</style>
+</head>
+<body>
+<script>
+let gate = 0;           // 0..1
+let dragging = false;
+
+function setup() {
+  const w = Math.min(innerWidth*0.95, 980);
+  const h = Math.min(innerHeight*0.9, 640);
+  createCanvas(w, h, WEBGL);
+  noStroke();
+}
+
+function windowResized(){
+  const w = Math.min(innerWidth*0.95, 980);
+  const h = Math.min(innerHeight*0.9, 640);
+  resizeCanvas(w, h);
+}
+
+function draw() {
+  background(236);
+  orbitControl(1, 1, 0.2);
+
+  // lighting
+  ambientLight(140);
+  directionalLight(255,255,255, -0.6,-0.9,-0.4);
+  pointLight(255,255,255, 300,-200,300);
+
+  // room tiles
+  push();
+  translate(0, 160, 0);
+  rotateX(PI/2);
+  ambientMaterial(245);
+  plane(2200, 2200);
+  pop();
+
+  // back wall
+  push();
+  translate(0, -20, -380);
+  ambientMaterial(240);
+  plane(2000, 1200);
+  pop();
+
+  // green P on wall
+  push();
+  translate(-520, -20, -379);
+  fill(40,210,80);
+  textSize(180);
+  textAlign(CENTER, CENTER);
+  rotateY(PI); // face camera
+  text("P", 0, 0);
+  pop();
+
+  drawBasin();
+  drawFaucet(gate);
+  drawWater(gate);
+  hud();
+}
+
+function drawBasin(){
+  push();
+  translate(120, 110, 120);
+  rotateX(-PI/18);
+  fill(252);
+  box(520, 120, 520);
+
+  // hollow
+  push();
+  fill(236);
+  translate(0, -10, 0);
+  box(480, 80, 480);
+  pop();
+
+  // rim
+  push();
+  noFill();
+  pop();
+  pop();
+}
+
+function drawFaucet(g){
+  // body
+  push();
+  translate(-120, -10, 0);
+
+  // vertical trunk
+  push();
+  specularMaterial(20); shininess(60);
+  box(90, 210, 90);
+  pop();
+
+  // red glow ring
+  push();
+  translate(0, -60, 0);
+  emissiveMaterial(255, 60, 60);
+  torus(55, 2, 48, 12);
+  pop();
+
+  // horizontal spout
+  push();
+  translate(135, -60, 0);
+  specularMaterial(20); shininess(60);
+  box(260, 36, 90);
+  pop();
+
+  // small nozzle
+  push();
+  translate(265, -42, 0);
+  rotateZ(PI/2);
+  specularMaterial(30);
+  cylinder(10, 36, 24, 1, true, true);
+  pop();
+
+  // top shelf
+  push();
+  translate(0, -118, 45);
+  specularMaterial(25);
+  box(180, 16, 90);
+  pop();
+
+  // handle (drag target)
+  const lift = map(g, 0, 1, 0, 42);
+  push();
+  translate(0, -118 - lift, 45);
+  specularMaterial(60);
+  box(160, 10, 70);
+  pop();
+
+  // blue neon channel (L-shaped)
+  const glow = 160 + 80*g;
+  emissiveMaterial(90,150+80*g,255);
+  // vertical strip
+  push();
+  translate( -45, -60, -42 );
+  box(6, 160, 2);
+  pop();
+  // bottom inner turn
+  push();
+  translate( 30, -60, -42 );
+  box(260, 6, 2);
+  pop();
+  // horizontal strip along spout
+  push();
+  translate(135, -60, -42 );
+  box(260, 6, 2);
+  pop();
+
+  pop(); // end faucet root
+}
+
+function drawWater(g){
+  if (g <= 0.01) return;
+
+  // stream sheet under nozzle
+  const w = 18 + 18*g;
+  const len = 180 + 40*g;
+
+  // spout exit origin
+  const x0 = 145, y0 = -42, z0 = 0;
+
+  // translucent sheet
+  push();
+  translate(x0+len/2+100, y0+len*0.5, z0);
+  rotateZ(PI/2);
+  rotateY(PI/36);
+  ambientMaterial(140,190,255, 150);
+  plane(w, len);
+  pop();
+
+  // droplets
+  randomSeed(3);
+  for(let i=0;i<18*g;i++){
+    const t = frameCount*0.02 + i;
+    const dx = 100 + (i*len/18);
+    const px = 145 + dx + noise(i, t)*6;
+    const py = -42 + dx*0.9 + noise(i+9, t)*6;
+    const pz = noise(i+99, t)*6;
+    push();
+    translate(px, py, pz);
+    ambientMaterial(120,170,255, 220);
+    sphere(3+g*1.2, 8, 6);
+    pop();
+  }
+}
+
+function hud(){
+  push();
+  resetMatrix();
+  translate(12, 12);
+  fill(0,130);
+  rect(0,0,190,56,6);
+  fill(255);
+  textSize(12);
+  textAlign(LEFT,TOP);
+  text("Handle: drag up/down\nGate: " + nf(gate,1,2), 10,8);
+  pop();
+}
+
+// interaction
+function mousePressed(){
+  if (overHandle()) dragging = true;
+}
+function mouseDragged(){
+  if (!dragging) return;
+  const local = screenToLocal(mouseX, mouseY);
+  const handleBase = createVector(-120, -118, 45);
+  const dy = constrain((handleBase.y - local.y)/60, 0, 1);
+  gate = dy;
+}
+function mouseReleased(){ dragging = false; }
+
+// hit test
+function overHandle(){
+  const p = worldToScreen(createVector(-120, -118, 45));
+  const dx = abs(mouseX - p.x), dy = abs(mouseY - p.y);
+  return dx < 90 && dy < 40;
+}
+
+// helpers
+function worldToScreen(v){
+  return { x: width/2 + v.x, y: height/2 + v.y };
+}
+function screenToLocal(mx,my){
+  return createVector(mx - width/2, my - height/2, 0);
+}
+</script>
+</body>
+</html>
