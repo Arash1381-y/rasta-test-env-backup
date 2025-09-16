@@ -42,7 +42,9 @@
     <div class="wrap" dir="ltr">
       <div class="box" dir="rtl">
         <div class="card">
-          <div class="card-head">نماد لَچ D (از SR)</div>
+          <div class="card-head">
+            نماد D لچ
+        </div>
           <div class="card-body">
             <div id="symbol" style="width: 100%; height: 100%"></div>
           </div>
@@ -226,7 +228,7 @@
 
             // Q box outlined only. Gray border when NC
             const qBorder = qIsNC ? GRAY1 : (inputs.e?GREEN1:RED1);
-            drawOutlineBox(rightQX, qY - boxSize/2, boxSize, boxSize, "Q", qTxt, qBorder);
+            drawOutlineBox(rightQX, qY - boxSize/2, boxSize, boxSize, "خروجی", qTxt, qBorder);
 
             // R/S clickable pads near SR inputs, outlined only
             const padW = 24, padH = 24; const padX = srX - 24 - (W*0.04);
@@ -290,7 +292,7 @@
             p.text("فعال ساز", cE, startY - 26);
             p.text("R", cR, startY - 26);
             p.text("S", cS, startY - 26);
-            p.text("Q", cQ, startY - 26);
+            p.text("خروجی", cQ, startY - 26);
             p.text("نتیجه", cRes, startY - 26);
 
             const yTop = startY - 36, yBot = startY + 3 * rowGap + cellH + 12;
