@@ -144,7 +144,14 @@
             // outputs and non-input toggles: outlined only
             p.fill(255); p.stroke(strokeCol); p.strokeWeight(3); p.rect(x,y,w,h,10);
             p.noStroke(); p.fill(0); p.textSize(Math.min(h*0.35,16)); p.text(label, x+w/2, y - Math.min(h*0.35,16)-2);
-            p.fill(0); p.textSize(Math.min(h*0.45,18)); p.text(valueText, x+w/2, y+h/2+1);
+            p.fill(0); p.textSize(Math.min(h*0.45,18));
+            if (valueText == "بدون تغییر") {
+                p.text("بدون", x+w/2, y+h/2-10);
+                p.text("تغییر", x+w/2, y+h/2+5);
+            }
+            else {
+                p.text(valueText, x+w/2, y+h/2+1);
+            }
           }
           function hit(mx,my,hb){ return hb && mx>hb.x && mx<hb.x+hb.w && my>hb.y && my<hb.y+hb.h; }
 
@@ -202,12 +209,12 @@
 
             // SR latch box
             p.noFill(); p.stroke(0); p.strokeWeight(3); p.rect(srX, srY, srW, srH, 6);
-            p.noStroke(); p.fill(0); p.textSize(Math.min(srH*0.22,28)); p.text("SR", srX+srW/2, srY+srH/2);
+            p.noStroke(); p.fill(0); p.textSize(Math.min(srH*0.22,28)); p.text("لچ", srX+srW/2, srY+srH/2);
 
             // Q output
             const qY = srY + srH*0.47;
             const qTxt = qDesired(inputs.d, inputs.e);
-            const qIsNC = qTxt === "NC";
+            const qIsNC = qTxt === "بدون تغییر";
             const qStroke = qIsNC ? GRAY1 : (inputs.e?GREEN1:RED1);
             // arrow and flow in gray if NC
             drawArrowLine(srX+srW, qY, rightQX + 30, qY, qStroke);
