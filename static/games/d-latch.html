@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>لَچ D از SR – نماد و جدول درستی</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+    <style>
+      @font-face {
+        font-family: "Vazir";
+        src: url("https://cdn.fontcdn.ir/Font/Persian/Vazir/Vazir.woff") format("woff");
+        font-display: swap;
+      }
+      :root {
+        --fs-base: clamp(13px, 0.9vw + 0.25rem, 18px);
+        --fs-lg: calc(var(--fs-base) * 1.125);
+        --box-w: clamp(260px, 95vw, 420px);
+        --box-h: clamp(300px, 70vh, 480px);
+        --radius: 14px;
+        --shadow: 0 2px 10px rgba(0,0,0,0.12);
+      }
+      @media (min-width: 300px) { :root { --box-w: 240px; --box-h: 300px; --fs-base: 9px; } }
+      @media (min-width: 640px) { :root { --box-w: 340px; --box-h: 460px; --fs-base: 12px; } }
+      @media (min-width: 1024px){ :root { --box-w: 420px; --box-h: 520px; --fs-base: 16px; } }
+
+      html, body { height: 100%; }
+      body {
+        margin: 0; background: #fff;
+        font-family: Vazir, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        font-size: var(--fs-base);
+        display: flex; align-items: center; justify-content: center; overflow-x: hidden;
+      }
+      .wrap { display: flex; gap: 10px; width: 100%; max-width: 1200px; align-items: stretch; justify-content: center; }
+      .box { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; min-width: 0; }
+      .card { width: var(--box-w); height: var(--box-h); background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); display: flex; flex-direction: column; overflow: hidden; margin: 0 2px; }
+      .card-head { padding: 10px 14px; text-align: center; font-size: var(--fs-lg); border-bottom: 1px solid #eee; }
+      .card-body { flex: 1; display: flex; align-items: center; justify-content: center; padding: 10px; }
+      canvas { display: block; width: 100%; height: 100%; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap" dir="ltr">
+      <div class="box" dir="rtl">
+        <div class="card">
+          <div class="card-head">نماد لَچ D (از SR)</div>
+          <div class="card-body">
+            <div id="symbol" style="width: 100%; height: 100%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="box" dir="rtl">
+        <div class="card">
+          <div class="card-head">جدول درستی لَچ D</div>
+          <div class="card-body">
+            <div id="truth-table" style="width: 100%; height: 100%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function fitToParentCanvas(p, parentId, baseW = 420, baseH = 520) {
+        const el = document.getElementById(parentId);
+        const r = el.getBoundingClientRect();
+        const w = Math.max(10, Math.floor(r.width));
+        const h = Math.max(10, Math.floor(r.height));
+        if (p._renderer) p.resizeCanvas(w, h);
+        const sx = w / baseW, sy = h / baseH;
+        const s = Math.min(sx, sy);
+        const ox = (w - baseW * s) / 2, oy = (h - baseH * s) / 2;
+        return { s, ox, oy, w, h, baseW, baseH };
+      }
+
+      // ----- shared state -----
+      const rows = [];
+      for (let e of [0,1]) for (let d of [0,1]) rows.push({ d, e, r: 0, s: 0 });
+      const inputs = { d: 0, e: 0 };
+      let tableLocked = false; // lock after all rows valid
+      function currentIndex() { return inputs.d + inputs.e * 2; }
+      function expectedR(d, e) { return e & (d ? 0 : 1); } // R = E & !D
+      function expectedS(d, e) { return e & d; }           // S = E &  D
+      function qDesired(d, e) { return e ? (d ? "1" : "0") : "بدون تغییر"; }
+      function setInput(d, e) { if (tableLocked) return; inputs.d = d ? 1 : 0; inputs.e = e ? 1 : 0; }
+      function setOutputsForCurrent(r, s) { if (tableLocked) return; const i = currentIndex(); rows[i].r = r ? 1 : 0; rows[i].s = s ? 1 : 0; }
+
+      // ---------- Card 1: Symbol with SR-latch box and Q ----------
+      (function () {
+        const sketch = function (p) {
+          const BASE_W = 420, BASE_H = 520;
+          let view = { s:1, ox:0, oy:0 };
+          let hbD=null, hbE=null, hbR=null, hbS=null;
+
+          let GREEN1, GREEN2, RED1, RED2, LABEL, TEXT, GRAY1, GRAY2;
+
+          p.setup = function () {
+            const r = document.getElementById("symbol").getBoundingClientRect();
+            p.createCanvas(r.width || BASE_W, r.height || BASE_H);
+            p.textAlign(p.CENTER, p.CENTER);
+            p.textFont("Vazir");
+            GREEN1 = p.color(46,204,113);
+            GREEN2 = p.lerpColor(GREEN1, p.color(255), 0.35);
+            RED1   = p.color(242,80,58);
+            RED2   = p.lerpColor(RED1, p.color(255), 0.35);
+            LABEL  = p.color(40);
+            TEXT   = p.color(255);
+            GRAY1  = p.color(150);
+            GRAY2  = p.lerpColor(GRAY1, p.color(255), 0.50);
+          };
+          p.windowResized = function(){ view = fitToParentCanvas(p, "symbol", BASE_W, BASE_H); };
+
+          function drawArrowLine(x1,y1,x2,y2,col,w=2.5,ah=8){
+            p.stroke(col); p.strokeWeight(w); p.line(x1,y1,x2,y2);
+            const ang = Math.atan2(y2-y1, x2-x1);
+            p.noStroke(); p.fill(col);
+            const hx = Math.cos(ang), hy = Math.sin(ang);
+            const ax=x2, ay=y2, p1x=ax-ah*hx, p1y=ay-ah*hy;
+            const lx=p1x+ah*0.6*-hy, ly=p1y+ah*0.6*hx;
+            const rx=p1x-ah*0.6*-hy, ry=p1y-ah*0.6*hx;
+            p.triangle(ax,ay,lx,ly,rx,ry);
+          }
+          function drawFlow(x1,y1,x2,y2,isOn){
+            const c1 = isOn ? GREEN1 : RED1;
+            const c2 = isOn ? GREEN2 : RED2;
+            drawFlowColor(x1,y1,x2,y2,c1,c2);
+          }
+          function drawFlowColor(x1,y1,x2,y2,c1,c2){
+            const dx=x2-x1, dy=y2-y1, L=Math.hypot(dx,dy);
+            if(L<1) return;
+            const ux=dx/L, uy=dy/L;
+            const spacing=12, speed=0.4, r=2.8, phase=(p.frameCount*speed)%spacing;
+            for(let d=phase; d<L-10; d+=spacing){
+              const x=x1+ux*d, y=y1+uy*d;
+              p.noStroke(); p.fill(((d/spacing)|0)%2===0?c1:c2); p.circle(x,y,r*2);
+            }
+          }
+          function drawIOBox(x,y,w,h,val,label){
+            // inputs are solid filled
+            const col = val ? GREEN1 : RED1;
+            p.noStroke(); p.fill(col); p.rect(x,y,w,h,10);
+            p.fill(TEXT); p.textSize(Math.min(h*0.5,22)); p.text(val, x+w/2, y+h/2+1);
+            p.fill(0); p.textSize(Math.min(h*0.35,16)); p.text(label, x+w/2, y - Math.min(h*0.35,16)-2);
+          }
+          function drawOutlineBox(x,y,w,h,label, valueText, strokeCol){
+            // outputs and non-input toggles: outlined only
+            p.fill(255); p.stroke(strokeCol); p.strokeWeight(3); p.rect(x,y,w,h,10);
+            p.noStroke(); p.fill(0); p.textSize(Math.min(h*0.35,16)); p.text(label, x+w/2, y - Math.min(h*0.35,16)-2);
+            p.fill(0); p.textSize(Math.min(h*0.45,18)); p.text(valueText, x+w/2, y+h/2+1);
+          }
+          function hit(mx,my,hb){ return hb && mx>hb.x && mx<hb.x+hb.w && my>hb.y && my<hb.y+hb.h; }
+
+          p.draw = function(){
+            view = fitToParentCanvas(p, "symbol", BASE_W, BASE_H);
+            p.clear(); p.background(255); p.push(); p.translate(view.ox,view.oy); p.scale(view.s);
+
+            const W=BASE_W, H=BASE_H;
+            const margin = 0;
+            const boxSize = Math.min(W,H)*0.11;
+
+            // Left box: computes R,S from D,E
+            const compW = W*0.25, compH = H*0.38;
+            const compX = margin + boxSize + 40, compY = H*0.22;
+
+            // SR latch box to the right
+            const srW = W*0.24, srH = compH*0.85;
+            const srX = compX + compW + W*0.13, srY = compY + (compH - srH)/2;
+
+            // I/O positions
+            const leftX = margin;
+            const rightQX = W - margin - boxSize;
+
+            const dY = compY + compH*0.30 - boxSize/2;
+            const eY = compY + compH*0.70 - boxSize/2;
+
+            // Inputs D,E (solid)
+            drawIOBox(leftX, dY, boxSize, boxSize, inputs.d, "داده"); hbD = {x:leftX,y:dY,w:boxSize,h:boxSize};
+            drawIOBox(leftX, eY, boxSize, boxSize, inputs.e, "فعال ساز"); hbE = {x:leftX,y:eY,w:boxSize,h:boxSize};
+
+            // Compute R,S for current row
+            const i = currentIndex();
+            const rVal = rows[i].r, sVal = rows[i].s;
+
+            // Left compute box label '?'
+            p.noFill(); p.stroke(0); p.strokeWeight(3); p.rect(compX, compY, compW, compH, 6);
+            p.noStroke(); p.fill(0); p.textSize(Math.min(compH*0.28,34)); p.text("?", compX+compW/2, compY+compH/2);
+
+            // Wires D,E -> compute box
+            const dWireY = dY + boxSize/2, eWireY = eY + boxSize/2;
+            drawArrowLine(leftX+boxSize, dWireY, compX, dWireY, inputs.d?GREEN1:RED1);
+            drawArrowLine(leftX+boxSize, eWireY, compX, eWireY, inputs.e?GREEN1:RED1);
+            drawFlow(leftX+boxSize, dWireY, compX, dWireY, !!inputs.d);
+            drawFlow(leftX+boxSize, eWireY, compX, eWireY, !!inputs.e);
+
+            // Outputs from compute box: R top, S bottom to SR box inputs
+            const rY = compY + compH*0.35;
+            const sY = compY + compH*0.65;
+
+            // Into SR box
+            drawArrowLine(compX+compW, rY, srX, rY, rVal?GREEN1:RED1);
+            drawArrowLine(compX+compW, sY, srX, sY, sVal?GREEN1:RED1);
+            drawFlow(compX+compW, rY, srX, rY, !!rVal);
+            drawFlow(compX+compW, sY, srX, sY, !!sVal);
+
+            // SR latch box
+            p.noFill(); p.stroke(0); p.strokeWeight(3); p.rect(srX, srY, srW, srH, 6);
+            p.noStroke(); p.fill(0); p.textSize(Math.min(srH*0.22,28)); p.text("SR", srX+srW/2, srY+srH/2);
+
+            // Q output
+            const qY = srY + srH*0.47;
+            const qTxt = qDesired(inputs.d, inputs.e);
+            const qIsNC = qTxt === "NC";
+            const qStroke = qIsNC ? GRAY1 : (inputs.e?GREEN1:RED1);
+            // arrow and flow in gray if NC
+            drawArrowLine(srX+srW, qY, rightQX + 30, qY, qStroke);
+            if (qIsNC) {
+              drawFlowColor(srX+srW, qY, rightQX + 30, qY, GRAY1, GRAY2);
+            } else {
+              drawFlow(srX+srW, qY, rightQX + 30, qY, !!inputs.e);
+            }
+
+            // Q box outlined only. Gray border when NC
+            const qBorder = qIsNC ? GRAY1 : (inputs.e?GREEN1:RED1);
+            drawOutlineBox(rightQX, qY - boxSize/2, boxSize, boxSize, "Q", qTxt, qBorder);
+
+            // R/S clickable pads near SR inputs, outlined only
+            const padW = 24, padH = 24; const padX = srX - 24 - (W*0.04);
+            // R pad
+            p.fill(255); p.stroke(rVal?GREEN1:RED1); p.strokeWeight(3);
+            p.rect(padX, rY - padH/2, padW, padH, 6);
+            p.noStroke(); p.fill(0); p.textSize(12); p.text("R", padX + padW/2, rY);
+            hbR = { x: padX, y: rY - padH/2, w: padW, h: padH };
+            // S pad
+            p.fill(255); p.stroke(sVal?GREEN1:RED1); p.strokeWeight(3);
+            p.rect(padX, sY - padH/2, padW, padH, 6);
+            p.noStroke(); p.fill(0); p.textSize(12); p.text("S", padX + padW/2, sY);
+            hbS = { x: padX, y: sY - padH/2, w: padW, h: padH };
+
+            p.pop();
+          };
+
+          function press(px,py){
+            if (tableLocked) return;
+            const mx=(px - view.ox)/view.s, my=(py - view.oy)/view.s;
+            if (hit(mx,my,hbD)) setInput(1 - inputs.d, inputs.e);
+            else if (hit(mx,my,hbE)) setInput(inputs.d, 1 - inputs.e);
+            else if (hit(mx,my,hbR)) setOutputsForCurrent(1 - rows[currentIndex()].r, rows[currentIndex()].s);
+            else if (hit(mx,my,hbS)) setOutputsForCurrent(rows[currentIndex()].r, 1 - rows[currentIndex()].s);
+          }
+          p.mousePressed = function(){ press(p.mouseX,p.mouseY); };
+          p.touchStarted = function(){ press(p.mouseX,p.mouseY); return false; };
+        };
+        new p5(sketch, "symbol");
+      })();
+
+      // ---------- Card 2: Truth table (wider) ----------
+      (function () {
+        const startY = 90, rowGap = 70, cellW = 34, cellH = 34;
+        const cSpace = 80;
+        const cD = 50, cE = cD + cSpace, cR = cE + cSpace, cS = cR + cSpace, cQ = cS + cSpace, cRes = cQ + cSpace;
+
+        const sketch = function (p) {
+          const BASE_W = 520, BASE_H = 520; // wider
+          let view = { s:1, ox:0, oy:0 };
+
+          p.setup = function(){
+            const r = document.getElementById("truth-table").getBoundingClientRect();
+            p.createCanvas(r.width || BASE_W, r.height || BASE_H);
+            p.textAlign(p.CENTER, p.CENTER);
+            p.textFont("Vazir");
+          };
+          p.windowResized = function(){ view = fitToParentCanvas(p, "truth-table", BASE_W, BASE_H); };
+
+          function highlightedIndex(){
+            for(let i=0;i<rows.length;i++) if(rows[i].d===inputs.d && rows[i].e===inputs.e) return i;
+            return -1;
+          }
+
+          p.draw = function(){
+            view = fitToParentCanvas(p, "truth-table", BASE_W, BASE_H);
+            p.clear(); p.background(255); p.push(); p.translate(view.ox,view.oy); p.scale(view.s);
+
+            p.textSize(18); p.fill(0);
+            p.text("داده", cD, startY - 26);
+            p.text("فعال ساز", cE, startY - 26);
+            p.text("R", cR, startY - 26);
+            p.text("S", cS, startY - 26);
+            p.text("Q", cQ, startY - 26);
+            p.text("نتیجه", cRes, startY - 26);
+
+            const yTop = startY - 36, yBot = startY + 3 * rowGap + cellH + 12;
+            p.stroke(180); p.strokeWeight(1);
+            [ [cD,cE],[cE,cR],[cR,cS],[cS,cQ],[cQ,cRes] ].forEach(([x1,x2])=>{
+              p.line((x1+x2)/2, yTop, (x1+x2)/2, yBot);
+            });
+
+            const hi = highlightedIndex();
+            let allValid = true;
+            const G = p.color(46,204,113), R = p.color(242,80,58);
+
+            for(let i=0;i<rows.length;i++){
+              const y = startY + i*rowGap;
+              const active = i===hi;
+
+              // highlight only when not locked
+              if(active && !tableLocked){
+                const x = cD - 32, w = cRes + 30, h = cellH + 18, r = 10;
+                p.push();
+                const ctx = p.drawingContext; ctx.save(); ctx.globalCompositeOperation = "destination-over";
+                p.noStroke(); p.fill(255,245,180,140); p.rect(x, y-9, w, h, r); ctx.restore(); p.pop();
+
+                p.push();
+                const dash=6, gap=6; p.noFill(); p.stroke(255,200,0); p.strokeWeight(2);
+                p.drawingContext.setLineDash([dash,gap]);
+                p.drawingContext.lineDashOffset = -(p.frameCount % (dash+gap));
+                p.rect(x, y-9, w, h, 10);
+                p.drawingContext.setLineDash([]); p.pop();
+              }
+
+              // dim others only when not locked
+              p.push(); if(!active && !tableLocked) p.drawingContext.globalAlpha = 0.38;
+
+              // D
+              p.noStroke(); p.fill(rows[i].d ? G : R);
+              p.rect(cD - cellW/2, y, cellW, cellH, 10);
+              p.fill(active||tableLocked?255:90); p.textSize(16); p.text(rows[i].d, cD, y+cellH/2);
+
+              // E
+              p.noStroke(); p.fill(rows[i].e ? G : R);
+              p.rect(cE - cellW/2, y, cellW, cellH, 10);
+              p.fill(active||tableLocked?255:90); p.text(rows[i].e, cE, y+cellH/2);
+
+              // R
+              const outR = rows[i].r;
+              p.stroke(active||tableLocked ? (outR ? G : R) : 170); p.strokeWeight(active||tableLocked?3:1.5);
+              p.fill(active||tableLocked?255:232); p.rect(cR - cellW/2, y, cellW, cellH, 10);
+              p.noStroke(); p.fill(active||tableLocked?0:80); p.text(outR, cR, y+cellH/2);
+
+              // S
+              const outS = rows[i].s;
+              p.stroke(active||tableLocked ? (outS ? G : R) : 170); p.strokeWeight(active||tableLocked?3:1.5);
+              p.fill(active||tableLocked?255:232); p.rect(cS - cellW/2, y, cellW, cellH, 10);
+              p.noStroke(); p.fill(active||tableLocked?0:80); p.text(outS, cS, y+cellH/2);
+
+              // Q (desired next)
+              const q = qDesired(rows[i].d, rows[i].e);
+              p.noStroke(); p.fill(0); p.textSize(16); p.text(q, cQ, y + cellH/2);
+
+              // check: R = E&!D, S = E&D, and not (R=1 & S=1)
+              const ok = (outR === expectedR(rows[i].d, rows[i].e)) &&
+                         (outS === expectedS(rows[i].d, rows[i].e)) &&
+                         !(outR && outS);
+              if(!ok) allValid = false;
+              p.textSize(22); p.fill((active||tableLocked) ? (ok ? G : R) : 0); p.text(ok ? "✅" : "❌", cRes, y + cellH/2);
+
+              p.pop();
+            }
+
+            // once correct, lock permanently
+            if (allValid) tableLocked = true;
+
+            p.textSize(16);
+            p.fill(allValid ? p.color(46,204,113) : p.color(242,80,58));
+            p.text(allValid ? "پاسخ درست است" : "پاسخ نادرست است",
+                   (cD + cRes)/2, startY + rows.length * (rowGap + 1));
+            p.pop();
+          };
+
+          function handlePress(px,py){
+            if (tableLocked) return;
+            const view = fitToParentCanvas(p, "truth-table", 520, 520);
+            const mx = (px - view.ox)/view.s, my = (py - view.oy)/view.s;
+
+            for(let i=0;i<rows.length;i++){
+              const y = startY + i*rowGap;
+              const xD = cD - cellW/2, xE = cE - cellW/2, xR = cR - cellW/2, xS = cS - cellW/2;
+
+              if(mx>xD && mx<xD+cellW && my>y && my<y+cellH){ setInput(rows[i].d, rows[i].e); return; }
+              if(mx>xE && mx<xE+cellW && my>y && my<y+cellH){ setInput(rows[i].d, rows[i].e); return; }
+
+              const hi = currentIndex(), yAct = startY + hi*rowGap;
+              if(i===hi){
+                if(mx>xR && mx<xR+cellW && my>yAct && my<yAct+cellH){ rows[hi].r = 1 - rows[hi].r; return; }
+                if(mx>xS && mx<xS+cellW && my>yAct && my<yAct+cellH){ rows[hi].s = 1 - rows[hi].s; return; }
+              }
+            }
+          }
+          p.mousePressed = function(){ handlePress(p.mouseX, p.mouseY); };
+          p.touchStarted = function(){ handlePress(p.mouseX, p.mouseY); return false; };
+        };
+        new p5(sketch, "truth-table");
+      })();
+    </script>
+  </body>
+</html>
