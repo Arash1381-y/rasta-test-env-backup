@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>تبدیل تصویر ۴ در ۴ به اعداد</title>
+  <title>تبدیل تصویر ۳ در ۳ به اعداد</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -13,8 +13,8 @@
   <style>
     :root {
       font-family: "Vazirmatn", system-ui, sans-serif;
-      --px: clamp(36px, 8vw, 56px);
-      --gap: clamp(6px, 1.8vw, 10px);
+      --px: clamp(48px, 10vw, 72px);
+      --gap: clamp(6px, 2vw, 12px);
     }
     html, body { background: transparent !important; }
     *, *::before, *::after { box-sizing: border-box; }
@@ -25,26 +25,23 @@
 
     .rect-text { font-size: clamp(14px, 4.2vw, 20px); }
 
-    /* keep index math stable in RTL docs */
     #outputGrid, #inputGrid { justify-content: center; direction: ltr; }
 
-    /* cells */
     .input-pixel, .output-pixel { width: var(--px); height: var(--px); }
     .input-pixel {
-      background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px;
+      background: #ffffff; border: 1px solid #e5e7eb; border-radius: 10px;
       cursor: pointer; transition: box-shadow .15s ease;
     }
     .input-pixel:hover { box-shadow: 0 0 0 2px rgba(245,158,11,.45); }
 
     .output-pixel {
-      background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px;
-      display: grid; place-items: center; padding: 2px;
+      background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 10px;
+      display: grid; place-items: center; padding: 4px;
       transition: background-color .15s ease, box-shadow .15s ease;
     }
 
-    /* compact number chip */
     .chip-pack {
-      display: inline-grid;          /* shrink-to-fit so it stays rounded */
+      display: inline-grid;
       grid-auto-flow: row;
       gap: 2px;
       align-items: center; justify-items: center;
@@ -53,21 +50,9 @@
       background: #fff; color: #111827;
       font-variant-numeric: tabular-nums;
     }
-    /* default size */
-    .chip {
-      line-height: 1.05;
-      font-size: 12px;
-      font-weight: 700;
-    }
+    .chip { line-height: 1.05; font-size: 12px; font-weight: 700; }
+    @media (max-width: 640px) { .chip { font-size: 10px; } }
 
-    /* shrink on small devices */
-    @media (max-width: 640px) {
-      .chip {
-        font-size: 9px;
-      }
-    }
-
-    /* overlay and popup */
     #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; z-index: 50; }
     #colorPopup {
       position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
@@ -84,19 +69,16 @@
 <body class="p-4 overflow-x-hidden">
   <main class="w-full max-w-5xl mx-auto">
     <h1 class="text-center text-2xl md:text-3xl font-extrabold mb-4 text-gray-800">
-      تبدیل تصویر ۴ در ۴ به اعداد
+      تبدیل تصویر ۳ در ۳ به اعداد
     </h1>
 
     <section dir="ltr">
-      <!-- Mobile: pixels → button → numbers. Desktop: numbers | button | pixels -->
       <div class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4">
-        <!-- Output grid (numbers) -->
         <div class="min-w-0 order-3 md:order-1 flex justify-center">
           <div id="outputGrid" class="grid"
-               style="grid-template-columns: repeat(4, var(--px)); gap: var(--gap);"></div>
+               style="grid-template-columns: repeat(3, var(--px)); gap: var(--gap);"></div>
         </div>
 
-        <!-- Convert button -->
         <div class="rotate mx-auto my-2 order-2">
           <button id="converterRect" type="button"
                   class="w-24 h-12 md:w-28 md:h-14 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl rect-text select-none">
@@ -104,16 +86,14 @@
           </button>
         </div>
 
-        <!-- Input grid (pixels) -->
         <div class="min-w-0 order-1 md:order-3 flex justify-center">
           <div id="inputGrid" class="grid"
-               style="grid-template-columns: repeat(4, var(--px)); gap: var(--gap);"></div>
+               style="grid-template-columns: repeat(3, var(--px)); gap: var(--gap);"></div>
         </div>
       </div>
     </section>
   </main>
 
-  <!-- overlay + color popup -->
   <div id="overlay"></div>
   <div id="colorPopup" class="flex flex-col items-center gap-3">
     <div class="text-sm text-gray-700 font-medium">رنگ انتخاب کنید</div>
@@ -134,8 +114,8 @@
   </div>
 
 <script>
-  // 4×4 grid
-  const ROWS = 4, COLS = 4;
+  // 3×3 grid
+  const ROWS = 3, COLS = 3;
 
   const inputGrid = document.getElementById('inputGrid');
   const outputGrid = document.getElementById('outputGrid');
@@ -150,7 +130,6 @@
   let current = null;
   let selectedColor = '#ffffff';
 
-  // utils
   const hexToRgb = (hex) => {
     const n = parseInt(hex.slice(1), 16);
     return { r: (n>>16)&255, g: (n>>8)&255, b: (n)&255 };
@@ -160,7 +139,7 @@
     return "#" + ((1<<24) + (r<<16) + (g<<8) + b).toString(16).slice(1);
   };
 
-  // build input grid
+  // input grid
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       const d = document.createElement('div');
@@ -171,7 +150,7 @@
     }
   }
 
-  // build output grid with one compact “chip-pack” per cell
+  // output grid
   for (let i = 0; i < ROWS * COLS; i++) {
     const cell = document.createElement('div');
     cell.className = "output-pixel";
@@ -182,7 +161,7 @@
     outputGrid.appendChild(cell);
   }
 
-  // open color picker on input click
+  // open picker
   inputGrid.addEventListener('click', (e) => {
     const d = e.target.closest('.input-pixel');
     if (!d) return;
@@ -205,7 +184,7 @@
   }));
   colorPicker.addEventListener('input', () => { selectedColor = colorPicker.value; updatePresetSelection(); });
 
-  // apply/cancel/overlay close
+  // apply/cancel
   function closePopup(reset=false) {
     if (reset) { current = null; selectedColor = '#ffffff'; colorPicker.value = selectedColor; updatePresetSelection(); }
     overlay.style.display = 'none';
@@ -218,21 +197,21 @@
       colors[current.r][current.c] = rgbStr;
       current.elem.style.background = rgbStr;
       current = null;
-      updateOutputs();
+      // حذف به‌روزرسانی فوری اعداد
     }
     closePopup();
   });
   cancelColorBtn.addEventListener('click', () => closePopup(true));
   overlay.addEventListener('click', () => closePopup(true));
 
-  // update numbers
+  // numbers update (فقط با دکمه)
   function updateOutputs() {
     const children = outputGrid.children;
     let idx = 0;
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         const [R,G,B] = colors[r][c].match(/\d+/g).map(Number);
-        const pack = children[idx].firstElementChild; // .chip-pack
+        const pack = children[idx].firstElementChild;
         const spans = pack.querySelectorAll('.chip');
         spans[0].textContent = R;
         spans[1].textContent = G;
@@ -242,7 +221,7 @@
     }
   }
 
-  // preview mapping stays correct because grids are LTR
+  // hover previews
   outputGrid.addEventListener('mouseover', (e) => {
     const cell = e.target.closest('.output-pixel');
     if (!cell) return;
@@ -279,10 +258,10 @@
     }
   });
 
-  // convert button
+  // convert button -> فقط این رویداد اعداد را به‌روز می‌کند
   converterRect.addEventListener('click', () => updateOutputs());
 
-  // initial
+  // اولیه: صفرها نمایش داده شوند
   updateOutputs();
 </script>
 </body>
