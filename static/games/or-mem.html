@@ -124,7 +124,6 @@
           const feedbackCorner3 = { x: inputBox.x + 60, y: feedbackLoopY };
           const feedbackCorner4 = { x: inputBox.x + 60, y: gateInputTop.y };
 
-          // INPUT toggle box
           p.image(orGateImg, gate.x, gate.y, gate.w, gate.h);
           p.noStroke();
           p.fill(...(state.a ? GREEN1 : RED1));
@@ -134,7 +133,7 @@
           p.text(state.a, inputBox.x + inputBox.w / 2, inputBox.y + 1);
           const hbIn = { x: inputBox.x, y: inputBox.y - inputBox.h / 2, w: inputBox.w, h: inputBox.h };
           p.fill(...COLOR_LABEL);
-          p.textSize(14);
+          p.textSize(20);
           p.text('ورودی', inputBox.x + inputBox.w / 2, inputBox.y - inputBox.h / 2 - 16);
 
           // wires thickness
@@ -169,8 +168,8 @@
           // Output label
           p.noStroke();
           p.fill(0);
-          p.textSize(14);
-          p.text('خروجی', outputBox.x + outputBox.w / 2, outputBox.y - 36);
+          p.textSize(20);
+          p.text('خروجی', outputBox.x + outputBox.w / 2, outputBox.y - 36 - 2 );
 
           // OUTPUT box: white fill, colored border only
           p.noFill();

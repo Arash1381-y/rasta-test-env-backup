@@ -137,7 +137,7 @@
           p.text(state.a, inputBox.x + inputBox.w / 2, inputBox.y + 1);
           hbIn = { x: inputBox.x, y: inputBox.y - inputBox.h / 2, w: inputBox.w, h: inputBox.h };
           p.fill(...COLOR_LABEL);
-          p.textSize(14);
+          p.textSize(20);
           p.text('ورودی', inputBox.x + inputBox.w / 2, inputBox.y - inputBox.h / 2 - 16);
 
           // wires
@@ -167,8 +167,8 @@
 
           p.noStroke();
           p.fill(0);
-          p.textSize(14);
-          p.text('خروجی', outputBox.x + outputBox.w / 2, outputBox.y - 36);
+          p.textSize(20);
+          p.text('خروجی', outputBox.x + outputBox.w / 2, outputBox.y - 38);
 
           p.noFill();
           p.stroke(...qCol);
