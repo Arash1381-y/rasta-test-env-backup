@@ -25,7 +25,7 @@
   <body>
     <div class="wrap">
       <div id="sk"></div>
-      <div class="bar"><button id="reset">Reset</button></div>
+      <div class="bar"></div>
     </div>
 
     <script>
@@ -61,7 +61,6 @@
           p.createCanvas(r.width || BW, r.height || BH);
           p.textFont('Vazir');
           p.textAlign(p.CENTER, p.CENTER);
-          document.getElementById('reset').onclick = () => { state.a = 0; state.b = 0; state.q = 0; };
         };
 
         p.windowResized = () => { view = fit(p, 'sk', BW, BH); };
@@ -88,6 +87,25 @@
           p.text(label, box.x + box.w / 2, box.y - box.h / 2 - 16);
         }
 
+        // draw a multi-segment wire with corner nodes
+        function drawWire(points, isOn, weight = 5.2, nodeR = 6) {
+          const col = isOn ? GREEN : RED;
+          p.stroke(...col);
+          p.strokeWeight(weight);
+          p.noFill();
+          for (let i = 0; i < points.length - 1; i++) {
+            const a = points[i], b = points[i + 1];
+            p.line(a.x, a.y, b.x, b.y);
+          }
+          // interior corners only
+          p.noStroke();
+          p.fill(...col);
+          for (let i = 1; i < points.length - 1; i++) {
+            const c = points[i];
+            p.circle(c.x, c.y, nodeR * 2);
+          }
+        }
+
         function hit(mx, my, hb) { return hb && mx > hb.x && mx < hb.x + hb.w && my > hb.y && my < hb.y + hb.h; }
 
         p.draw = () => {
@@ -100,8 +118,8 @@
 
           // --- Logic ---
           const q_prev = state.q;
-          const or_out  = (state.a === 1) || (q_prev === 1);  // A ∨ Q_prev
-          const not_out = !(state.b === 1);                    // ¬B
+          const or_out  = (state.a === 1) || (q_prev === 1); // A ∨ Q_prev
+          const not_out = !(state.b === 1);                   // ¬B
           state.q = (or_out && not_out) ? 1 : 0;
 
           // --- Layout ---
@@ -109,18 +127,18 @@
           const midY = BH / 2;
           const gatesX = BW / 2 - 100;
 
-          const inputBoxA = { x: 100, y: midY - 90, w: 42, h: 42 };
-          const inputBoxB = { x: 100, y: midY + 120, w: 42, h: 42 };
+          const inputBoxA = { x: 100, y: midY - 90 + 2,  w: 42, h: 42 };
+          const inputBoxB = { x: 100, y: midY + 125, w: 42, h: 42 };
 
           const orGate  = { x: gatesX,       y: midY - 120, w: 140, h: 105 };
-          const notGate = { x: gatesX + 25,  y: midY + 50,  w: 150,  h: 150  };
+          const notGate = { x: gatesX + 25,  y: midY + 50,  w: 150, h: 150 };
           const andGate = { x: gatesX + 220, y: midY - 60,  w: 140, h: 105 };
 
           const outputBox = { x: BW - 130, y: midY - 8, w: 44, h: 44 };
 
           // OR pins
-          const or_in_top = { x: orGate.x,           y: orGate.y + orGate.h * 0.3 }; // A
-          const or_in_bot = { x: orGate.x,           y: orGate.y + orGate.h * 0.7 }; // feedback Q
+          const or_in_top = { x: orGate.x,              y: orGate.y + orGate.h * 0.3 }; // A
+          const or_in_bot = { x: orGate.x,              y: orGate.y + orGate.h * 0.7 }; // feedback Q
           const or_out_pt = { x: orGate.x + orGate.w - 9, y: orGate.y + orGate.h / 2 };
 
           // NOT pins (for B)
@@ -128,8 +146,8 @@
           const not_out_pt = { x: notGate.x + notGate.w - 10, y: notGate.y + notGate.h / 2 };
 
           // AND pins
-          const and_in_top = { x: andGate.x + 40,            y: andGate.y + andGate.h * 0.3 }; // from OR
-          const and_in_bot = { x: andGate.x + 40,            y: andGate.y + andGate.h * 0.7 }; // from NOT
+          const and_in_top = { x: andGate.x + 40,            y: andGate.y + andGate.h * 0.3 };
+          const and_in_bot = { x: andGate.x + 40,            y: andGate.y + andGate.h * 0.7 };
           const and_out_pt = { x: andGate.x + andGate.w - 40, y: andGate.y + andGate.h / 2 };
 
           // Feedback path geometry -> OR bottom input
@@ -139,8 +157,6 @@
           const fb_c3    = { x: fb_c2.x,           y: or_in_bot.y };
 
           // --- Draw ---
-          p.strokeWeight(5.2);
-
           // Inputs
           hbInA = drawInputBox(inputBoxA, state.a, 'اول');
           hbInB = drawInputBox(inputBoxB, state.b, 'دوم');
@@ -150,36 +166,53 @@
           p.image(notGateImg, notGate.x, notGate.y, notGate.w, notGate.h);
           p.image(andGateImg, andGate.x, andGate.y, andGate.w, andGate.h);
 
-          // Wires
-          // A -> OR (top)
-          p.stroke(...(state.a ? GREEN : RED));
-          p.line(inputBoxA.x + inputBoxA.w, inputBoxA.y, or_in_top.x + 40, or_in_top.y);
+          // Wires with corner nodes
+          // A -> OR (top), routed with two bends
+          drawWire([
+            { x: inputBoxA.x + inputBoxA.w, y: inputBoxA.y },
+            { x: or_in_top.x + 40,          y: inputBoxA.y },
+            { x: or_in_top.x + 40,          y: or_in_top.y }
+          ], !!state.a);
 
-          // B -> NOT only
-          p.stroke(...(state.b ? GREEN : RED));
-          p.line(inputBoxB.x + inputBoxB.w, inputBoxB.y, not_in.x, not_in.y);
+          // B -> NOT, routed with two bends
+          drawWire([
+            { x: inputBoxB.x + inputBoxB.w, y: inputBoxB.y },
+            { x: not_in.x - 30,             y: inputBoxB.y },
+            { x: not_in.x - 30,             y: not_in.y },
+            { x: not_in.x,                  y: not_in.y }
+          ], !!state.b);
 
-          // OR -> AND (top AND input)
-          p.stroke(...(or_out ? GREEN : RED));
-          p.line(or_out_pt.x, or_out_pt.y, or_out_pt.x, and_in_top.y);
-          p.line(or_out_pt.x, and_in_top.y, and_in_top.x, and_in_top.y);
+          // OR -> AND (top)
+          drawWire([
+            { x: or_out_pt.x, y: or_out_pt.y },
+            { x: or_out_pt.x, y: and_in_top.y },
+            { x: and_in_top.x, y: and_in_top.y }
+          ], !!or_out);
 
-          // NOT -> AND (bottom AND input)
-          p.stroke(...(not_out ? GREEN : RED));
-          p.line(not_out_pt.x, not_out_pt.y, not_out_pt.x, and_in_bot.y);
-          p.line(not_out_pt.x, and_in_bot.y, and_in_bot.x, and_in_bot.y);
+          // NOT -> AND (bottom)
+          drawWire([
+            { x: not_out_pt.x, y: not_out_pt.y },
+            { x: not_out_pt.x, y: and_in_bot.y },
+            { x: and_in_bot.x, y: and_in_bot.y }
+          ], !!not_out);
 
-          // AND -> Output
-          p.stroke(...(state.q ? GREEN : RED));
-          p.line(and_out_pt.x, and_out_pt.y, outputBox.x, outputBox.y);
+          // AND -> Output (straight; no corner node)
+          drawWire([
+            { x: and_out_pt.x, y: and_out_pt.y },
+            { x: outputBox.x,  y: outputBox.y }
+          ], !!state.q);
 
-          // Feedback Q -> OR (bottom input)
-          p.line(and_out_pt.x, and_out_pt.y, fb_start.x, fb_start.y);
-          p.line(fb_start.x, fb_start.y, fb_c1.x, fb_c1.y);
-          p.line(fb_c1.x, fb_c1.y, fb_c2.x, fb_c2.y);
-          p.line(fb_c2.x, fb_c2.y, fb_c3.x, fb_c3.y);
-          p.line(fb_c3.x, fb_c3.y, or_in_bot.x, or_in_bot.y);
-          // connection node at OR bottom input
+          // Feedback Q -> OR (bottom) with four bends
+          drawWire([
+            { x: and_out_pt.x, y: and_out_pt.y },
+            { x: fb_start.x,   y: fb_start.y },
+            { x: fb_c1.x,      y: fb_c1.y },
+            { x: fb_c2.x,      y: fb_c2.y },
+            { x: fb_c3.x,      y: fb_c3.y },
+            { x: or_in_bot.x,  y: or_in_bot.y }
+          ], !!state.q);
+
+          // connection node at OR bottom input (endpoint marker)
           p.noStroke(); p.fill(...(state.q ? GREEN : RED));
           p.circle(or_in_bot.x, or_in_bot.y, nodeR * 2);
 
