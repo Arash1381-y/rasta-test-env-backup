@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <title>سیگنال کلاک — دوره ثابت</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    html, body { height: 100%; }
+    body {
+      margin: 0; background:#fff;
+      display: grid; place-items: center;
+      font-family: Vazirmatn, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    .frame { width: min(95vw, 1200px); }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <div class="frame" id="wrap"></div>
+
+  <script>
+    // ----- settings -----
+    let periodSec = 4.0;               // ثابت
+    let yHigh, yLow, x0, x1, yAxis;    // layout
+    let labelSize = 14, titleSize = 26, infoSize = 20;
+
+    function desiredSize() {
+      const w = Math.min(windowWidth * 0.95, 1200);
+      const h = Math.min(350, Math.max(200, windowHeight * 0.38));
+      return { w: Math.floor(w), h: Math.floor(h) };
+    }
+
+    function setup() {
+      const { w, h } = desiredSize();
+      const c = createCanvas(w, h);
+      c.parent('wrap');
+      textFont('Vazirmatn');
+      strokeCap(SQUARE);
+      layout();
+      noLoop(); // ثابت
+    }
+
+    function windowResized() {
+      const { w, h } = desiredSize();
+      resizeCanvas(w, h);
+      layout();
+      redraw();
+    }
+
+    function layout() {
+      const m = 48;
+      x0 = m; x1 = width - m;
+      yHigh = Math.round(height * 0.50);
+      yLow  = Math.round(height * 0.78);
+      yAxis = height - 28;
+
+      const s = constrain(height / 240, 0.8, 1.6);
+      labelSize = Math.round(13 * s);
+      titleSize = Math.round(26 * s);
+      infoSize  = Math.round(18 * s);
+    }
+
+    function draw() {
+      background(255);
+
+      // title
+      noStroke(); fill(0);
+      textAlign(CENTER, BASELINE);
+      textSize(titleSize);
+      text('سیگنال کلاک', width/2, 30);
+
+      // choose span so at least ~2 periods visible
+      const span = Math.max(2.5 * periodSec, 6); // seconds  visible
+      const tStart = 0;
+      const tEnd = tStart + span;
+
+      // rails
+      stroke(180); strokeWeight(1);
+      line(x0, yHigh, x1, yHigh);
+      line(x0, yLow,  x1, yLow);
+
+      // labels
+      noStroke(); fill(0); textSize(labelSize); textAlign(LEFT, BASELINE);
+      text('1',   20, yHigh + 4);
+      text('0',   20, yLow  + 4);
+
+      // clock waveform (static)
+      stroke(0,105,255); strokeWeight(3); noFill();
+      beginShape();
+      for (let x = x0; x <= x1; x++) {
+        const t = map(x, x0, x1, tStart, tEnd);
+        const frac = t/periodSec - Math.floor(t/periodSec);
+        const y = (frac < 0.5) ? yHigh : yLow;
+        vertex(x, y);
+      }
+      endShape();
+
+      // period arrow between two consecutive rising edges inside the view
+      let a0 = periodSec;          // prefer [T, 2T]
+      let a1 = 2*periodSec;
+      if (a1 > tEnd) { a0 = 0; a1 = periodSec; }
+      const ax0 = map(a0, tStart, tEnd, x0, x1);
+      const ax1 = map(a1, tStart, tEnd, x0, x1);
+      const ay  = yHigh - 18;
+
+      drawDoubleArrow(ax0, ax1, ay);
+      // caption above arrow
+      textAlign(CENTER, BASELINE);
+      textSize(infoSize);
+      const hz = 1/periodSec;
+      text(`طول دوره = ${nf(periodSec,1,2)} ثانیه    فرکانس = ${nf(hz,1,2)} Hz`, (ax0+ax1)/2, ay - 8);
+
+      // x-axis with timestamps
+      drawTimeAxis(tStart, tEnd);
+    }
+
+    function drawDoubleArrow(xa, xb, y) {
+      stroke(0); strokeWeight(2);
+      line(xa, y, xb, y);
+      const ah = 8; // arrowhead size
+      // left head
+      line(xa, y, xa + ah, y - ah/2);
+      line(xa, y, xa + ah, y + ah/2);
+      // right head
+      line(xb, y, xb - ah, y - ah/2);
+      line(xb, y, xb - ah, y + ah/2);
+    }
+
+    function drawTimeAxis(tStart, tEnd) {
+      // axis line
+      stroke(0); strokeWeight(1);
+      line(x0, yAxis, x1, yAxis);
+
+      // choose tick step so labels don’t overlap
+      const px = x1 - x0;
+      const secPerPx = (tEnd - tStart) / px;
+      const steps = [0.2, 0.5, 1, 2, 5, 10, 20, 30, 60];
+      let step = steps[0];
+      for (let s of steps) {
+        if ((s / secPerPx) >= 50) { step = s; break; }
+        step = s;
+      }
+
+      textSize(12); noStroke(); fill(0); textAlign(CENTER, TOP);
+
+      const startTick = Math.ceil(tStart / step) * step;
+      for (let t = startTick; t <= tEnd + 1e-6; t += step) {
+        const x = map(t, tStart, tEnd, x0, x1);
+        // tick
+        stroke(0); line(x, yAxis, x, yAxis + 6);
+        noStroke(); text(formatTime(t), x, yAxis + 8);
+      }
+      // origin label
+      noStroke(); textAlign(RIGHT, TOP);
+      text(formatTime(0), x0 - 4, yAxis + 8);
+    }
+
+    function formatTime(t) {
+      // show integers as "2 s", otherwise "2.5 s"
+      const isInt = Math.abs(t - Math.round(t)) < 1e-6;
+      return (isInt ? Math.round(t) : nf(t, 1, 1));
+    }
+  </script>
+</body>
+</html>
