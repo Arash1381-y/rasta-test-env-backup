@@ -91,7 +91,7 @@
       yLow  = Math.round(height * 0.70);
       const s = constrain(height / 220, 0.8, 1.6);
       labelSize = Math.round(13 * s);
-      infoSize  = Math.round(24 * s);
+      infoSize  = Math.round(20 * s);
       titleSize = Math.round(26 * s);
     }
 
@@ -106,7 +106,7 @@
 
         // info (period + frequency)
         textAlign(RIGHT, BASELINE);
-        textSize(infoSize - 12); fill(0);
+        textSize(infoSize); fill(0);
         const f = 1 / periodSec;
         text(`دوره تناوب: ${periodSec.toFixed(2)} s`, x1, 64);
         text(`فرکانس: ${f.toFixed(2)} Hz`,           x1, 100);
