@@ -104,6 +104,14 @@
       textSize(titleSize);
       text('سیگنال کلاک', width/2, 30);
 
+        // info (period + frequency)
+        textAlign(RIGHT, BASELINE);
+        textSize(infoSize - 12); fill(0);
+        const f = 1 / periodSec;
+        text(`دوره تناوب: ${periodSec.toFixed(2)} s`, x1, 64);
+        text(`فرکانس: ${f.toFixed(2)} Hz`,           x1, 100);
+
+
       // labels
       textAlign(LEFT, BASELINE);
       textSize(labelSize);
