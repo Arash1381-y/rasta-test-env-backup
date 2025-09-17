@@ -96,37 +96,40 @@
       }
       endShape();
 
-      // --- سطح: double-headed arrow covering full high plateau (2 s) on [4..6]s ---
+      // --- سطح: [0..2] s ---
       {
-        const levelStart = periodSec;           // 4s
-        const levelEnd   = periodSec * 1.5;     // 6s
-        const xa = map(levelStart, tStart, tEnd, x0, x1);
-        const xb = map(levelEnd,   tStart, tEnd, x0, x1);
+        const xa = map(0, tStart, tEnd, x0, x1);
+        const xb = map(periodSec / 2, tStart, tEnd, x0, x1); // 2s
         const y  = yHigh - 20;
         drawHArrow(xa, xb, y, 'سطح', 'above', 'both');
       }
 
-      // --- لبه‌ها: vertical arrows near edges, not on the edge ---
+      // --- لبه‌ها: 0s, 2s, 8s, 10s (offset from edges) ---
       {
         const edgeOffsetPx = 14;
         const y0 = yLow + 6, y1 = yHigh - 6;
 
-        // rising at t=4s
-        const xr = map(periodSec, tStart, tEnd, x0, x1) + edgeOffsetPx;
-        drawVArrow(xr, y0, y1, 'لبه', 'left', 'up');
+        // // 0s rising
+        // const x0s = map(0, tStart, tEnd, x0, x1) + edgeOffsetPx;
+        // drawVArrow(x0s, y0, y1, 'لبه', 'left', 'up');
 
-        // falling at t=6s
-        const xf = map(periodSec * 1.5, tStart, tEnd, x0, x1) + edgeOffsetPx;
-        drawVArrow(xf, y1, y0, 'لبه', 'left', 'down');
+        // // 2s falling
+        // const x2s = map(periodSec / 2, tStart, tEnd, x0, x1) + edgeOffsetPx;
+        // drawVArrow(x2s, y1, y0, 'لبه', 'left', 'down');
+
+        // 8s rising
+        const x8s = map(8, tStart, tEnd, x0, x1) - edgeOffsetPx;
+        drawVArrow(x8s, y0 - 10, y1 + 10, 'لبه', 'left', 'up');
+
+        // 10s falling
+        const x10s = map(10, tStart, tEnd, x0, x1) + edgeOffsetPx;
+        drawVArrow(x10s, y1 + 10, y0 - 10, 'لبه', 'right', 'down');
       }
 
-      // --- دوره تناوب (T): double-headed arrow between rising edges ---
+      // --- دوره تناوب (T): [4..8] s ---
       {
-        let a0 = periodSec;       // 4
-        let a1 = 2 * periodSec;   // 8
-        if (a1 > tEnd) { a0 = 0; a1 = periodSec; }
-        const ax0 = map(a0, tStart, tEnd, x0, x1);
-        const ax1 = map(a1, tStart, tEnd, x0, x1);
+        const ax0 = map(4, tStart, tEnd, x0, x1);
+        const ax1 = map(8, tStart, tEnd, x0, x1);
         const ay  = yHigh - 42;
         drawHArrow(ax0, ax1, ay, 'دوره تناوب (T)', 'above', 'both');
       }
