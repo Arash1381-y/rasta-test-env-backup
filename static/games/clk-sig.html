@@ -87,8 +87,8 @@
     function layout() {
       const m = 40;
       x0 = m; x1 = width - m;
-      yHigh = Math.round(height * 0.38);
-      yLow  = Math.round(height * 0.70);
+      yHigh = Math.round(height * 0.48);
+      yLow  = Math.round(height * 0.80);
       const s = constrain(height / 220, 0.8, 1.6);
       labelSize = Math.round(13 * s);
       infoSize  = Math.round(20 * s);
@@ -108,8 +108,8 @@
         textAlign(RIGHT, BASELINE);
         textSize(infoSize); fill(0);
         const f = 1 / periodSec;
-        text(`دوره تناوب: ${periodSec.toFixed(2)} s`, x1, 64);
-        text(`فرکانس: ${f.toFixed(2)} Hz`,           x1, 100);
+        text(`دوره تناوب: ${periodSec.toFixed(2)} s`, x1, 90);
+        text(`فرکانس: ${f.toFixed(2)} Hz`,           x1, 130);
 
 
       // labels

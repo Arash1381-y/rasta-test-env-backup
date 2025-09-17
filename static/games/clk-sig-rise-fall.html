@@ -58,7 +58,7 @@
     let periodSec = 4.0;   // starts at 4 s
     let pxPerSec  = 40;    // scroll speed
     let yHigh, yLow, x0, x1;
-    let labelSize = 14, titleSize = 26;
+    let labelSize = 14, infoSize = 22, titleSize = 26; // dynamic like game 1
 
     const MIN_P = 0.25, MAX_P = 16.0;
 
@@ -87,10 +87,11 @@
     function layout() {
       const m = 40;
       x0 = m; x1 = width - m;
-      yHigh = Math.round(height * 0.38);
-      yLow  = Math.round(height * 0.70);
-      const s = constrain(height / 220, 0.8, 1.6);
+      yHigh = Math.round(height * 0.48);
+      yLow  = Math.round(height * 0.80);
+      const s = constrain(height / 220, 0.8, 1.6); // same scaling approach
       labelSize = Math.round(13 * s);
+      infoSize  = Math.round(20 * s);
       titleSize = Math.round(26 * s);
     }
 
@@ -103,13 +104,12 @@
       textSize(titleSize);
       text('سیگنال کلاک', width/2, 30);
 
-        // info (period + frequency)
-        textAlign(RIGHT, BASELINE);
-        let infoSize  = 20
-        textSize(infoSize); fill(0);
-        const f = 1 / periodSec;
-        text(`دوره تناوب: ${periodSec.toFixed(2)} s`, x1, 60);
-        text(`فرکانس: ${f.toFixed(2)} Hz`,           x1, 84);
+      // info (period + frequency)
+      textAlign(RIGHT, BASELINE);
+      textSize(infoSize); fill(0);
+      const f = 1 / periodSec;
+      text(`دوره تناوب: ${periodSec.toFixed(2)} s`, x1, 90);
+      text(`فرکانس: ${f.toFixed(2)} Hz`,           x1, 130);
 
       // labels
       textAlign(LEFT, BASELINE);
@@ -172,20 +172,20 @@
         drawTransitionArrow(x, 'fall');
       }
     }
+
     const RISE_ARROW_COLOR = 'green';  // rising edges
-    const FALL_ARROW_COLOR = 'red';  // falling edges
+    const FALL_ARROW_COLOR = 'red';    // falling edges
+
     function drawTransitionArrow(x, kind) {
-      const ah = 7;                 // arrowhead size
-      stroke(kind === "rise" ? RISE_ARROW_COLOR: FALL_ARROW_COLOR); strokeWeight(2);
+      const ah = 7; // arrowhead size
+      stroke(kind === "rise" ? RISE_ARROW_COLOR : FALL_ARROW_COLOR); strokeWeight(2);
       // vertical transition line
       line(x, yLow, x, yHigh);
       // arrowhead
       if (kind === 'rise') {
-        // up arrow at top rail (apex at yHigh)
         line(x, yHigh, x - ah * 0.6, yHigh + ah);
         line(x, yHigh, x + ah * 0.6, yHigh + ah);
       } else {
-        // down arrow at bottom rail (apex at yLow)
         line(x, yLow, x - ah * 0.6, yLow - ah);
         line(x, yLow, x + ah * 0.6, yLow - ah);
       }
