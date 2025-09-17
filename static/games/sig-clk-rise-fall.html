@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <title>سیگنال کلاک — لبه‌های بالا/پایین‌رونده</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    html, body { height: 100%; }
+    body {
+      margin: 0; display: grid; place-items: center; background: #fff;
+      font-family: Vazirmatn, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    .frame { width: min(95vw, 1200px); }
+    canvas { display:block; }
+  </style>
+</head>
+<body>
+  <div class="frame" id="wrap"></div>
+
+  <script>
+    let periodSec = 8.0;   // شروع با 4 ثانیه
+    let pxPerSec  = 40;    // سرعت حرکت افقی
+    let yHigh, yLow, x0, x1;
+    let labelSize = 14, titleSize = 26;
+
+    function desiredSize() {
+      const w = Math.min(windowWidth * 0.95, 1200);
+      const h = Math.min(350, Math.max(180, windowHeight * 0.35));
+      return { w: Math.floor(w), h: Math.floor(h) };
+    }
+
+    function setup() {
+      const { w, h } = desiredSize();
+      const c = createCanvas(w, h);
+      c.parent('wrap');
+      textFont('Vazirmatn');
+      strokeCap(SQUARE);
+      layout();
+    }
+
+    function windowResized() {
+      const { w, h } = desiredSize();
+      resizeCanvas(w, h);
+      layout();
+    }
+
+    function layout() {
+      const m = 40;
+      x0 = m; x1 = width - m;
+      // همان مختصات مرجع
+      yHigh = Math.round(height * 0.38);
+      yLow  = Math.round(height * 0.70);
+
+      const s = constrain(height / 220, 0.8, 1.6);
+      labelSize = Math.round(13 * s);
+      titleSize = Math.round(26 * s);
+    }
+
+    function draw() {
+      background(255);
+
+      // عنوان
+      noStroke(); fill(0);
+      textAlign(CENTER, BASELINE);
+      textSize(titleSize);
+      text('سیگنال کلاک', width/2, 30);
+
+      // برچسب‌های 1 و 0
+      textAlign(LEFT, BASELINE);
+      textSize(labelSize);
+      text('1',  20, yHigh + 4);
+      text('0',  20, yLow  + 4);
+
+      // ریل‌ها
+      stroke(180); strokeWeight(1);
+      line(x0, yHigh, x1, yHigh);
+      line(x0, yLow,  x1, yLow);
+
+      const now = millis()/1000;
+
+      // موج حرکت‌کننده
+      stroke(0, 105, 255);
+      strokeWeight(3); noFill();
+      beginShape();
+      for (let x = x0; x <= x1; x++) {
+        const t = now - (x1 - x)/pxPerSec;
+        let phase = (t / periodSec) % 1; if (phase < 0) phase += 1;
+        const y = (phase < 0.5) ? yHigh : yLow;
+        vertex(x, y);
+      }
+      endShape();
+
+      // لبه‌های بالا/پایین‌رونده داخل پنجرهٔ زمانی جاری
+      const tStart = now - (x1 - x0)/pxPerSec;
+      const tEnd   = now;
+      drawEdges(tStart, tEnd, now);
+    }
+
+    function drawEdges(tStart, tEnd, now) {
+      const T = periodSec;
+      const lineW = 4.5;     // ضخامت پیکان
+      const head  = 10;      // اندازهٔ سر پیکان
+
+      // Rising edges at n*T
+      let nRStart = Math.ceil((tStart - 1e-9) / T);
+      let nREnd   = Math.floor((tEnd   + 1e-9) / T);
+      for (let n = nRStart; n <= nREnd; n++) {
+        const tEdge = n * T;
+        const x = x1 - (now - tEdge) * pxPerSec;
+        if (x < x0 || x > x1) continue;
+        // خط برجستهٔ لبه
+        stroke(0,160,80,160); strokeWeight(lineW);
+        line(x, yLow, x, yHigh);
+        // پیکان رو به بالا (لبهٔ بالا‌رونده)
+        drawArrowUp(x, yLow + 6, yHigh - 6, head, color(0,160,80));
+      }
+
+      // Falling edges at n*T + T/2
+      let nFStart = Math.ceil(((tStart - 0.5*T) - 1e-9) / T);
+      let nFEnd   = Math.floor(((tEnd   - 0.5*T) + 1e-9) / T);
+      for (let n = nFStart; n <= nFEnd; n++) {
+        const tEdge = n * T + 0.5 * T;
+        const x = x1 - (now - tEdge) * pxPerSec;
+        if (x < x0 || x > x1) continue;
+        // خط برجستهٔ لبه
+        stroke(200,40,40,160); strokeWeight(lineW);
+        line(x, yLow, x, yHigh);
+        // پیکان رو به پایین (لبهٔ پایین‌رونده)
+        drawArrowDown(x, yHigh - 6, yLow + 6, head, color(200,40,40));
+      }
+    }
+
+    function drawArrowUp(x, yFrom, yTo, headSize, col) {
+      stroke(col); strokeWeight(4.5);
+      line(x, yFrom, x, yTo);
+      line(x, yTo, x - headSize, yTo + headSize + 20);
+      line(x, yTo, x + headSize, yTo + headSize + 20);
+    }
+
+    function drawArrowDown(x, yFrom, yTo, headSize, col) {
+      stroke(col); strokeWeight(4.5);
+      line(x, yFrom, x, yTo);
+      line(x, yTo, x - headSize, yTo - headSize - 20);
+      line(x, yTo, x + headSize, yTo - headSize - 20);
+    }
+
+    // تنظیم دوره با کلیدها (در صورت نیاز)
+    function keyPressed() {
+      if (keyCode === RIGHT_ARROW) periodSec = max(0.25, periodSec / 2);
+      if (keyCode === LEFT_ARROW)  periodSec = min(16.0, periodSec * 2);
+    }
+  </script>
+</body>
+</html>
