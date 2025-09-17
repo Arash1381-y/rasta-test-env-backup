@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <title>سیگنال کلاک — دوره ثابت</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    html, body { height: 100%; }
+    body {
+      margin: 0; background:#fff;
+      display: grid; place-items: center;
+      font-family: Vazirmatn, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    .frame { width: min(95vw, 1200px); }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <div class="frame" id="wrap"></div>
+
+  <script>
+    // ----- settings -----
+    let periodSec = 4.0;               // ثابت
+    let yHigh, yLow, x0, x1, yAxis;    // layout
+    let labelSize = 14, titleSize = 26, infoSize = 20;
+
+    function desiredSize() {
+      const w = Math.min(windowWidth * 0.95, 1200);
+      const h = Math.min(350, Math.max(200, windowHeight * 0.38));
+      return { w: Math.floor(w), h: Math.floor(h) };
+    }
+
+    function setup() {
+      const { w, h } = desiredSize();
+      const c = createCanvas(w, h);
+      c.parent('wrap');
+      textFont('Vazirmatn');
+      strokeCap(SQUARE);
+      layout();
+      noLoop(); // ثابت
+    }
+
+    function windowResized() {
+      const { w, h } = desiredSize();
+      resizeCanvas(w, h);
+      layout();
+      redraw();
+    }
+
+    function layout() {
+      const m = 48;
+      x0 = m; x1 = width - m;
+      yHigh = Math.round(height * 0.50);
+      yLow  = Math.round(height * 0.78);
+      yAxis = height - 28;
+
+      const s = constrain(height / 240, 0.8, 1.6);
+      labelSize = Math.round(13 * s);
+      titleSize = Math.round(26 * s);
+      infoSize  = Math.round(18 * s);
+    }
+
+    function draw() {
+      background(255);
+
+      // title
+      noStroke(); fill(0);
+      textAlign(CENTER, BASELINE);
+      textSize(titleSize);
+      text('سیگنال کلاک', width/2, 30);
+
+      // fixed time span: 0 → 12 s
+      const tStart = 0;
+      const tEnd   = 12;
+
+      // rails
+      stroke(180); strokeWeight(1);
+      line(x0, yHigh, x1, yHigh);
+      line(x0, yLow,  x1, yLow);
+
+      // labels 1/0
+      noStroke(); fill(0); textSize(labelSize); textAlign(LEFT, BASELINE);
+      text('1',   20, yHigh + 4);
+      text('0',   20, yLow  + 4);
+
+      // clock waveform (static)
+      stroke(0,105,255); strokeWeight(3); noFill();
+      beginShape();
+      for (let x = x0; x <= x1; x++) {
+        const t = map(x, x0, x1, tStart, tEnd);
+        const frac = t/periodSec - Math.floor(t/periodSec);
+        const y = (frac < 0.5) ? yHigh : yLow;
+        vertex(x, y);
+      }
+      endShape();
+
+      // --- سطح: double-headed arrow covering full high plateau (2 s) on [4..6]s ---
+      {
+        const levelStart = periodSec;           // 4s
+        const levelEnd   = periodSec * 1.5;     // 6s
+        const xa = map(levelStart, tStart, tEnd, x0, x1);
+        const xb = map(levelEnd,   tStart, tEnd, x0, x1);
+        const y  = yHigh - 20;
+        drawHArrow(xa, xb, y, 'سطح', 'above', 'both');
+      }
+
+      // --- لبه‌ها: vertical arrows near edges, not on the edge ---
+      {
+        const edgeOffsetPx = 14;
+        const y0 = yLow + 6, y1 = yHigh - 6;
+
+        // rising at t=4s
+        const xr = map(periodSec, tStart, tEnd, x0, x1) + edgeOffsetPx;
+        drawVArrow(xr, y0, y1, 'لبه', 'left', 'up');
+
+        // falling at t=6s
+        const xf = map(periodSec * 1.5, tStart, tEnd, x0, x1) + edgeOffsetPx;
+        drawVArrow(xf, y1, y0, 'لبه', 'left', 'down');
+      }
+
+      // --- دوره تناوب (T): double-headed arrow between rising edges ---
+      {
+        let a0 = periodSec;       // 4
+        let a1 = 2 * periodSec;   // 8
+        if (a1 > tEnd) { a0 = 0; a1 = periodSec; }
+        const ax0 = map(a0, tStart, tEnd, x0, x1);
+        const ax1 = map(a1, tStart, tEnd, x0, x1);
+        const ay  = yHigh - 42;
+        drawHArrow(ax0, ax1, ay, 'دوره تناوب (T)', 'above', 'both');
+      }
+
+      drawTimeAxis(tStart, tEnd);
+    }
+
+    // ----- helpers -----
+    function drawHArrow(xa, xb, y, label, labelPos = 'above', heads = 'both') {
+      stroke(0); strokeWeight(1);
+      line(xa, y, xb, y);
+      const ah = 6;
+      if (heads === 'both' || heads === 'left') {
+        line(xa, y, xa + ah, y - ah/2);
+        line(xa, y, xa + ah, y + ah/2);
+      }
+      if (heads === 'both' || heads === 'right') {
+        line(xb, y, xb - ah, y - ah/2);
+        line(xb, y, xb - ah, y + ah/2);
+      }
+      noStroke(); fill(0); textSize(infoSize); textAlign(CENTER, labelPos === 'above' ? BOTTOM : TOP);
+      text(label, (xa + xb) / 2, y + (labelPos === 'above' ? -6 : 6));
+    }
+
+    function drawVArrow(x, yFrom, yTo, label, side = 'left', headDir = 'up') {
+      stroke(0); strokeWeight(1.5);
+      line(x, yFrom, x, yTo);
+      const ah = 6;
+      if (headDir === 'up') {
+        line(x, yTo, x - ah, yTo + ah);
+        line(x, yTo, x + ah, yTo + ah);
+      } else {
+        line(x, yTo, x - ah, yTo - ah);
+        line(x, yTo, x + ah, yTo - ah);
+      }
+      noStroke(); fill(0); textSize(infoSize);
+      textAlign(side === 'left' ? RIGHT : LEFT, CENTER);
+      const tx = x + (side === 'left' ? -8 : 8);
+      const ty = (yFrom + yTo) / 2;
+      text(label, tx, ty);
+    }
+
+    function drawTimeAxis(tStart, tEnd) {
+      stroke(0); strokeWeight(1);
+      line(x0, yAxis, x1, yAxis);
+
+      const px = x1 - x0;
+      const secPerPx = (tEnd - tStart) / px;
+      const steps = [0.2, 0.5, 1, 2, 5, 10, 20, 30, 60];
+      let step = steps[0];
+      for (let s of steps) {
+        if ((s / secPerPx) >= 50) { step = s; break; }
+        step = s;
+      }
+
+      textSize(12); noStroke(); fill(0); textAlign(CENTER, TOP);
+      const startTick = Math.ceil(tStart / step) * step;
+      for (let t = startTick; t <= tEnd + 1e-6; t += step) {
+        const x = map(t, tStart, tEnd, x0, x1);
+        stroke(0); line(x, yAxis, x, yAxis + 6);
+        noStroke(); text(formatTime(t), x, yAxis + 8);
+      }
+      noStroke(); textAlign(RIGHT, TOP);
+      text(formatTime(0), x0 - 4, yAxis + 8);
+    }
+
+    function formatTime(t) {
+      const isInt = Math.abs(t - Math.round(t)) < 1e-6;
+      return (isInt ? Math.round(t) : nf(t, 1, 1));
+    }
+  </script>
+</body>
+</html>
