@@ -64,10 +64,18 @@
                     <table class="w-full border-collapse rounded-lg">
                         <thead>
                             <tr class="bg-gray-50">
-                                <th class="border border-gray-300 px-4 py-3 bg-orange-500 text-white font-semibold">Cout نهایی</th>
-                                <th class="border border-gray-300 px-4 py-3 bg-red-500 text-white font-semibold">Cout2</th>
-                                <th class="border border-gray-300 px-4 py-3 bg-green-500 text-white font-semibold">Cout1</th>
-                                <th class="border border-gray-300 px-4 py-3 bg-blue-600 text-white font-semibold">Cin</th>
+                                <th class="border border-gray-300 px-4 py-3 bg-orange-500 text-white font-semibold">
+                                    <sub><span style="unicode-bidi: plaintext;">out نهایی</span></sub>C
+                                </th>
+                                <th class="border border-gray-300 px-4 py-3 bg-red-500 text-white font-semibold">
+                                    C<sub>out2</sub>
+                                </th>
+                                <th class="border border-gray-300 px-4 py-3 bg-green-500 text-white font-semibold">
+                                    C<sub>out1</sub>
+                                </th>
+                                <th class="border border-gray-300 px-4 py-3 bg-blue-600 text-white font-semibold">
+                                    C<sub>in</sub>
+                                </th>
                                 <th class="border border-gray-300 px-4 py-3 bg-blue-500 text-white font-semibold">B</th>
                                 <th class="border border-gray-300 px-4 py-3 bg-blue-500 text-white font-semibold">A</th>
                             </tr>
@@ -93,13 +101,13 @@
         // داده جدول با مقادیر جدید
         const truthTableData = [
             {A: 0, B: 0, Cin: 0, Cout1: 0, Cout2: 0, CoutFinal: 0},
-            {A: 0, B: 0, Cin: 0, Cout1: 0, Cout2: 0, CoutFinal: 0},
-            {A: 0, B: 0, Cin: 0, Cout1: 0, Cout2: 0, CoutFinal: 0},
+            {A: 0, B: 0, Cin: 1, Cout1: 0, Cout2: 0, CoutFinal: 0},
+            {A: 0, B: 1, Cin: 0, Cout1: 0, Cout2: 0, CoutFinal: 0},
             {A: 0, B: 1, Cin: 1, Cout1: 0, Cout2: 1, CoutFinal: 1},
-            {A: 0, B: 0, Cin: 0, Cout1: 0, Cout2: 0, CoutFinal: 0},
-            {A: 0, B: 1, Cin: 1, Cout1: 0, Cout2: 1, CoutFinal: 1},
-            {A: 1, B: 0, Cin: 1, Cout1: 1, Cout2: 0, CoutFinal: 1},
-            {A: 1, B: 0, Cin: 1, Cout1: 1, Cout2: 0, CoutFinal: 1}
+            {A: 1, B: 0, Cin: 0, Cout1: 0, Cout2: 0, CoutFinal: 0},
+            {A: 1, B: 0, Cin: 1, Cout1: 0, Cout2: 1, CoutFinal: 1},
+            {A: 1, B: 1, Cin: 0, Cout1: 1, Cout2: 0, CoutFinal: 1},
+            {A: 1, B: 1, Cin: 1, Cout1: 1, Cout2: 0, CoutFinal: 1}
         ];
 
         // تولید جدول
