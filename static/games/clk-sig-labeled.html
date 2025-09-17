@@ -71,10 +71,9 @@
       textSize(titleSize);
       text('سیگنال کلاک', width/2, 30);
 
-      // choose span so at least ~2 periods visible
-      const span = Math.max(2.5 * periodSec, 6); // seconds  visible
+      // fixed time span: 0 → 12 s
       const tStart = 0;
-      const tEnd = tStart + span;
+      const tEnd   = 12;
 
       // rails
       stroke(180); strokeWeight(1);
@@ -97,29 +96,29 @@
       }
       endShape();
 
-      // period arrow between two consecutive rising edges inside the view
-      let a0 = periodSec;          // prefer [T, 2T]
-      let a1 = 2*periodSec;
+      // period arrow between two consecutive rising edges [T, 2T] = [4, 8]
+      let a0 = periodSec;          // 4
+      let a1 = 2*periodSec;        // 8
       if (a1 > tEnd) { a0 = 0; a1 = periodSec; }
       const ax0 = map(a0, tStart, tEnd, x0, x1);
       const ax1 = map(a1, tStart, tEnd, x0, x1);
       const ay  = yHigh - 18;
 
-      drawDoubleArrow(ax0, ax1, ay);
+      drawDoubleArrow(ax0, ax1, ay); // thin arrow (not bold)
       // caption above arrow
       textAlign(CENTER, BASELINE);
       textSize(infoSize);
       const hz = 1/periodSec;
-      text(`طول دوره = ${nf(periodSec,1,2)} ثانیه    فرکانس = ${nf(hz,1,2)} Hz`, (ax0+ax1)/2, ay - 8);
+      text(`طول دوره = ${nf(periodSec,1,2)} ثانیه    فرکانس = ${nf(hz,1,2)} Hz`, (ax0+ax1)/2, ay - 12);
 
       // x-axis with timestamps
       drawTimeAxis(tStart, tEnd);
     }
 
     function drawDoubleArrow(xa, xb, y) {
-      stroke(0); strokeWeight(2);
+      stroke(0); strokeWeight(1); // thin
       line(xa, y, xb, y);
-      const ah = 8; // arrowhead size
+      const ah = 6; // arrowhead size
       // left head
       line(xa, y, xa + ah, y - ah/2);
       line(xa, y, xa + ah, y + ah/2);
@@ -158,7 +157,6 @@
     }
 
     function formatTime(t) {
-      // show integers as "2 s", otherwise "2.5 s"
       const isInt = Math.abs(t - Math.round(t)) < 1e-6;
       return (isInt ? Math.round(t) : nf(t, 1, 1));
     }
