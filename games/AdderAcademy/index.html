@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مدار Full Adder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Vazir:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            font-family: 'Vazir', sans-serif;
+        }
+        
+        .truth-input {
+            width: 40px;
+            height: 40px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            caret-color: transparent;
+        }
+        
+        .truth-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .correct {
+            background-color: #dcfce7 !important;
+            border-color: #22c55e !important;
+        }
+        
+        .incorrect {
+            background-color: #fee2e2 !important;
+            border-color: #ef4444 !important;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-4">
+    <div class="max-w-7xl mx-auto">
+        <h1 class="text-3xl font-bold text-center mb-8 text-gray-800">مدار Full Adder</h1>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Circuit Diagram -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700 text-center">مدار منطقی</h2>
+                <div class="w-full border border-gray-200 rounded-lg flex items-center justify-center bg-gray-50" style="height: 400px;">
+                    <img src="Adder.png" alt="Full Adder Circuit" class="max-w-full max-h-full object-contain rounded-lg">
+                </div>
+            </div>
+            
+            <!-- Truth Table -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700 text-center">جدول صحت</h2>
+                <p class="text-sm text-gray-600 mb-4 text-center">ستون‌های خروجی را با مقادیر 0 یا 1 پر کنید</p>
+                
+                <div class="overflow-x-auto rounded-lg">
+                    <table class="w-full border-collapse rounded-lg">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th class="border border-gray-300 px-4 py-3 bg-orange-500 text-white font-semibold">
+                                    <sub><span style="unicode-bidi: plaintext;">out نهایی</span></sub>C
+                                </th>
+                                <th class="border border-gray-300 px-4 py-3 bg-red-500 text-white font-semibold">
+                                    C<sub>out2</sub>
+                                </th>
+                                <th class="border border-gray-300 px-4 py-3 bg-green-500 text-white font-semibold">
+                                    C<sub>out1</sub>
+                                </th>
+                                <th class="border border-gray-300 px-4 py-3 bg-blue-600 text-white font-semibold">
+                                    C<sub>in</sub>
+                                </th>
+                                <th class="border border-gray-300 px-4 py-3 bg-blue-500 text-white font-semibold">B</th>
+                                <th class="border border-gray-300 px-4 py-3 bg-blue-500 text-white font-semibold">A</th>
+                            </tr>
+                        </thead>
+                        <tbody id="truthTable">
+                            <!-- Rows will be dynamically created by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- دکمه بررسی -->
+                <div class="text-center mt-6">
+                    <button id="checkBtn" class="px-6 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700">بررسی</button>
+                </div>
+
+                <!-- پیام نتیجه -->
+                <div id="resultMsg" class="mt-4 text-center text-lg font-semibold hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // داده جدول با مقادیر جدید
+        const truthTableData = [
+            {A: 0, B: 0, Cin: 0, Cout1: 0, Cout2: 0, CoutFinal: 0},
+            {A: 0, B: 0, Cin: 1, Cout1: 0, Cout2: 0, CoutFinal: 0},
+            {A: 0, B: 1, Cin: 0, Cout1: 0, Cout2: 0, CoutFinal: 0},
+            {A: 0, B: 1, Cin: 1, Cout1: 0, Cout2: 1, CoutFinal: 1},
+            {A: 1, B: 0, Cin: 0, Cout1: 0, Cout2: 0, CoutFinal: 0},
+            {A: 1, B: 0, Cin: 1, Cout1: 0, Cout2: 1, CoutFinal: 1},
+            {A: 1, B: 1, Cin: 0, Cout1: 1, Cout2: 0, CoutFinal: 1},
+            {A: 1, B: 1, Cin: 1, Cout1: 1, Cout2: 0, CoutFinal: 1}
+        ];
+
+        // تولید جدول
+        function generateTruthTable() {
+            const tbody = document.getElementById('truthTable');
+            tbody.innerHTML = '';
+
+            truthTableData.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-50';
+                tr.innerHTML = `
+                    <td class="border border-gray-300 px-4 py-3 text-center">
+                        <input type="text" class="truth-input bg-orange-50 border-orange-300" 
+                               data-row="${index}" data-col="CoutFinal" placeholder="؟" readonly>
+                    </td>
+                    <td class="border border-gray-300 px-4 py-3 text-center">
+                        <input type="text" class="truth-input bg-red-50 border-red-300" 
+                               data-row="${index}" data-col="Cout2" placeholder="؟" readonly>
+                    </td>
+                    <td class="border border-gray-300 px-4 py-3 text-center">
+                        <input type="text" class="truth-input bg-green-50 border-green-300" 
+                               data-row="${index}" data-col="Cout1" placeholder="؟" readonly>
+                    </td>
+                    <td class="border border-gray-300 px-4 py-3 text-center font-semibold text-blue-700 text-lg">${row.Cin}</td>
+                    <td class="border border-gray-300 px-4 py-3 text-center font-semibold text-blue-600 text-lg">${row.B}</td>
+                    <td class="border border-gray-300 px-4 py-3 text-center font-semibold text-blue-600 text-lg">${row.A}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // behavior for toggling values
+            document.querySelectorAll('.truth-input').forEach(input => {
+                input.addEventListener('click', function () {
+                    let val = this.value.trim();
+                    if (val === '' || val === '؟') {
+                        this.value = '0';
+                    } else if (val === '0') {
+                        this.value = '1';
+                    } else {
+                        this.value = '';
+                    }
+                });
+            });
+        }
+
+        // بررسی جواب‌ها
+        function checkAnswers() {
+            let allCorrect = true;
+            document.querySelectorAll('.truth-input').forEach(input => {
+                const row = input.dataset.row;
+                const col = input.dataset.col;
+                const correctValue = String(truthTableData[row][col]);
+                if (input.value === correctValue) {
+                    input.classList.add("correct");
+                    input.classList.remove("incorrect");
+                } else {
+                    input.classList.add("incorrect");
+                    input.classList.remove("correct");
+                    allCorrect = false;
+                }
+            });
+
+            const resultMsg = document.getElementById("resultMsg");
+            if (allCorrect) {
+                resultMsg.className = "mt-4 text-center text-lg font-semibold text-green-600";
+                resultMsg.textContent = "✅ عالی! همه‌ی مقادیر درست وارد شدند.";
+                resultMsg.classList.remove("hidden");
+            } else {
+                resultMsg.className = "mt-4 text-center text-lg font-semibold text-red-600";
+                resultMsg.textContent = "❌ بعضی مقادیر اشتباه هستند. دوباره تلاش کنید.";
+                resultMsg.classList.remove("hidden");
+            }
+        }
+
+        // Init
+        generateTruthTable();
+        document.getElementById("checkBtn").addEventListener("click", checkAnswers);
+    </script>
+</body>
+</html>

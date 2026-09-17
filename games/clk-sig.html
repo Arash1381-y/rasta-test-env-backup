@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <title>سیگنال کلاک</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      display: grid;
+      place-items: center;
+      background: #fff;
+      font-family: Vazirmatn, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    .frame { width: min(95vw, 1200px); }
+    #sketch { width: 100%; }
+    canvas { display: block; }
+    .controls {
+      width: 100%;
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      align-items: center;
+      margin-top: 8px;
+      padding: 6px 0;
+      user-select: none;
+    }
+    .controls button {
+      flex: 0 0 auto;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: clamp(16px, 3.5vw, 20px);
+      padding: 10px 18px;
+      border-radius: 12px;
+      border: 1px solid #c9c9c9;
+      background: #f5f5f5;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      cursor: pointer;
+    }
+    .controls button:active { transform: scale(0.98); }
+  </style>
+</head>
+<body>
+  <div class="frame" id="wrap">
+    <div id="sketch"></div>
+
+    <div class="controls" dir="rtl">
+      <button id="slower" aria-label="کندتر: دو برابر شدن دوره">کندتر</button>
+      <button id="faster" aria-label="تندتر: نصف شدن دوره">تندتر</button>
+    </div>
+  </div>
+
+  <script>
+    let periodSec = 4.0;   // starts at 4 s
+    let pxPerSec  = 40;    // scroll speed
+    let yHigh, yLow, x0, x1;
+    let labelSize = 14, infoSize = 22, titleSize = 26;
+
+    const MIN_P = 0.25, MAX_P = 16.0;
+
+    function desiredSize() {
+      const w = Math.min(windowWidth * 0.95, 1200);
+      const h = Math.min(350, Math.max(180, windowHeight * 0.35));
+      return { w: Math.floor(w), h: Math.floor(h) };
+    }
+
+    function setup() {
+      const { w, h } = desiredSize();
+      const c = createCanvas(w, h);
+      c.parent('sketch');
+      textFont('Vazirmatn');
+      strokeCap(SQUARE);
+      layout();
+      wireControls();
+    }
+
+    function windowResized() {
+      const { w, h } = desiredSize();
+      resizeCanvas(w, h);
+      layout();
+    }
+
+    function layout() {
+      const m = 40;
+      x0 = m; x1 = width - m;
+      yHigh = Math.round(height * 0.48);
+      yLow  = Math.round(height * 0.80);
+      const s = constrain(height / 220, 0.8, 1.6);
+      labelSize = Math.round(13 * s);
+      infoSize  = Math.round(20 * s);
+      titleSize = Math.round(26 * s);
+    }
+
+    function draw() {
+      background(255);
+
+      // title
+      noStroke(); fill(0);
+      textAlign(CENTER, BASELINE);
+      textSize(titleSize);
+      text('سیگنال کلاک', width/2, 30);
+
+        // info (period + frequency)
+        textAlign(RIGHT, BASELINE);
+        textSize(infoSize); fill(0);
+        const f = 1 / periodSec;
+        text(`دوره تناوب: ${periodSec.toFixed(2)} s`, x1, 90);
+        text(`فرکانس: ${f.toFixed(2)} Hz`,           x1, 130);
+
+
+      // labels
+      textAlign(LEFT, BASELINE);
+      textSize(labelSize);
+      text('1',  20, yHigh + 4);
+      text('0',  20, yLow  + 4);
+
+      // rails
+      stroke(180); strokeWeight(1);
+      line(x0, yHigh, x1, yHigh);
+      line(x0, yLow,  x1, yLow);
+
+      // waveform
+      stroke(0, 105, 255);
+      strokeWeight(3); noFill();
+      beginShape();
+      for (let x = x0; x <= x1; x++) {
+        const t = millis()/1000 - (x1 - x)/pxPerSec;
+        let phase = (t / periodSec) % 1; if (phase < 0) phase += 1;
+        const y = (phase < 0.5) ? yHigh : yLow;
+        vertex(x, y);
+      }
+      endShape();
+    }
+
+    // keyboard support
+    function keyPressed() {
+      if (keyCode === RIGHT_ARROW) faster();
+      if (keyCode === LEFT_ARROW)  slower();
+    }
+
+    // actions
+    function faster() { periodSec = max(MIN_P, periodSec / 2); }
+    function slower() { periodSec = min(MAX_P, periodSec * 2); }
+
+    // pointer-only handlers to avoid double-fire from click
+    function wireControls() {
+      const btnF = document.getElementById('faster');
+      const btnS = document.getElementById('slower');
+      if (!btnF || !btnS) return;
+
+      const repeatOnHold = (el, fn) => {
+        let id = null;
+        const start = e => {
+          e.preventDefault();
+          try { el.setPointerCapture(e.pointerId); } catch (_) {}
+          fn(); // single step
+          id = setInterval(fn, 250); // repeat while held
+        };
+        const stop = () => { if (id) { clearInterval(id); id = null; } };
+
+        el.addEventListener('pointerdown', start, { passive: false });
+        el.addEventListener('pointerup', stop);
+        el.addEventListener('pointercancel', stop);
+        el.addEventListener('pointerleave', stop);
+      };
+
+      repeatOnHold(btnF, faster);
+      repeatOnHold(btnS, slower);
+    }
+  </script>
+</body>
+</html>

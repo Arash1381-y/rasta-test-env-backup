@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>تبدیل تصویر ۳ در ۳ به اعداد</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;500;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    :root {
+      font-family: "Vazirmatn", system-ui, sans-serif;
+      --px: clamp(48px, 10vw, 72px);
+      --gap: clamp(6px, 2vw, 12px);
+    }
+    html, body { background: transparent !important; }
+    *, *::before, *::after { box-sizing: border-box; }
+
+    .rotate { transition: transform .4s ease; }
+    .rotated { transform: rotate(180deg); }
+    @media (prefers-reduced-motion: reduce) { .rotate { transition: none; } }
+
+    .rect-text { font-size: clamp(14px, 4.2vw, 20px); }
+
+    #outputGrid, #inputGrid { justify-content: center; direction: ltr; }
+
+    .input-pixel, .output-pixel { width: var(--px); height: var(--px); }
+    .input-pixel {
+      background: #ffffff; border: 1px solid #e5e7eb; border-radius: 10px;
+      cursor: pointer; transition: box-shadow .15s ease;
+    }
+    .input-pixel:hover { box-shadow: 0 0 0 2px rgba(245,158,11,.45); }
+
+    .output-pixel {
+      background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 10px;
+      display: grid; place-items: center; padding: 4px;
+      transition: background-color .15s ease, box-shadow .15s ease;
+    }
+
+    .chip-pack {
+      display: inline-grid;
+      grid-auto-flow: row;
+      gap: 2px;
+      align-items: center; justify-items: center;
+      border: 1px solid #111827; border-radius: 10px;
+      padding: 2px 6px;
+      background: #fff; color: #111827;
+      font-variant-numeric: tabular-nums;
+    }
+    .chip { line-height: 1.05; font-size: 12px; font-weight: 700; }
+    @media (max-width: 640px) { .chip { font-size: 10px; } }
+
+    #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; z-index: 50; }
+    #colorPopup {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      background: #ffffff; padding: 16px; border-radius: 12px; box-shadow: 0 10px 30px rgba(2,6,23,0.2);
+      display: none; z-index: 60; min-width: 300px;
+    }
+    #colorPicker { width: 150px; height: 150px; border-radius: 8px; border: 2px solid #e6e6e6; appearance: none; cursor: pointer; }
+    .preset-color { width: 28px; height: 28px; border-radius: 6px; border: 1px solid #e6e6e6; cursor: pointer; transition: transform .18s, border-width .18s; }
+    .preset-color:hover { transform: scale(1.08); }
+    .preset-color.selected { border-width: 3px; border-color: #f59e0b; }
+  </style>
+</head>
+
+<body class="p-4 overflow-x-hidden">
+  <main class="w-full max-w-5xl mx-auto">
+    <h1 class="text-center text-2xl md:text-3xl font-extrabold mb-4 text-gray-800">
+      تبدیل تصویر ۳ در ۳ به اعداد
+    </h1>
+
+    <section dir="ltr">
+      <div class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4">
+        <div class="min-w-0 order-3 md:order-1 flex justify-center">
+          <div id="outputGrid" class="grid"
+               style="grid-template-columns: repeat(3, var(--px)); gap: var(--gap);"></div>
+        </div>
+
+        <div class="rotate mx-auto my-2 order-2">
+          <button id="converterRect" type="button"
+                  class="w-24 h-12 md:w-28 md:h-14 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl rect-text select-none">
+            تبدیل
+          </button>
+        </div>
+
+        <div class="min-w-0 order-1 md:order-3 flex justify-center">
+          <div id="inputGrid" class="grid"
+               style="grid-template-columns: repeat(3, var(--px)); gap: var(--gap);"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="overlay"></div>
+  <div id="colorPopup" class="flex flex-col items-center gap-3">
+    <div class="text-sm text-gray-700 font-medium">رنگ انتخاب کنید</div>
+    <input id="colorPicker" type="color" value="#ffffff">
+    <div class="flex flex-wrap gap-2 mt-1 justify-center">
+      <div class="preset-color" style="background:#ffffff" data-color="#ffffff" title="#ffffff"></div>
+      <div class="preset-color" style="background:#fca5a5" data-color="#fca5a5" title="soft red"></div>
+      <div class="preset-color" style="background:#fde68a" data-color="#fde68a" title="soft amber"></div>
+      <div class="preset-color" style="background:#bbf7d0" data-color="#bbf7d0" title="soft green"></div>
+      <div class="preset-color" style="background:#bae6fd" data-color="#bae6fd" title="soft sky"></div>
+      <div class="preset-color" style="background:#e5e7eb" data-color="#e5e7eb" title="soft gray"></div>
+      <div class="preset-color" style="background:#000000" data-color="#000000" title="#000000"></div>
+    </div>
+    <div class="mt-2 flex justify-center">
+      <button id="applyColorBtn" class="px-4 py-2 bg-amber-500 text-white rounded-md hover:bg-amber-600">انتخاب</button>
+      <button id="cancelColorBtn" class="px-3 py-2 ml-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">حذف</button>
+    </div>
+  </div>
+
+<script>
+  // 3×3 grid
+  const ROWS = 3, COLS = 3;
+
+  const inputGrid = document.getElementById('inputGrid');
+  const outputGrid = document.getElementById('outputGrid');
+  const overlay = document.getElementById('overlay');
+  const colorPopup = document.getElementById('colorPopup');
+  const colorPicker = document.getElementById('colorPicker');
+  const applyColorBtn = document.getElementById('applyColorBtn');
+  const cancelColorBtn = document.getElementById('cancelColorBtn');
+  const converterRect = document.getElementById('converterRect');
+
+  let colors = Array.from({length: ROWS}, () => Array(COLS).fill('rgb(255,255,255)'));
+  let current = null;
+  let selectedColor = '#ffffff';
+
+  const hexToRgb = (hex) => {
+    const n = parseInt(hex.slice(1), 16);
+    return { r: (n>>16)&255, g: (n>>8)&255, b: (n)&255 };
+  };
+  const rgbToHex = (rgbStr) => {
+    const [r,g,b] = rgbStr.match(/\d+/g).map(Number);
+    return "#" + ((1<<24) + (r<<16) + (g<<8) + b).toString(16).slice(1);
+  };
+
+  // input grid
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const d = document.createElement('div');
+      d.className = "input-pixel";
+      d.style.background = colors[r][c];
+      d.dataset.r = r; d.dataset.c = c;
+      inputGrid.appendChild(d);
+    }
+  }
+
+  // output grid
+  for (let i = 0; i < ROWS * COLS; i++) {
+    const cell = document.createElement('div');
+    cell.className = "output-pixel";
+    const pack = document.createElement('div');
+    pack.className = "chip-pack";
+    pack.innerHTML = `<span class="chip">0</span><span class="chip">0</span><span class="chip">0</span>`;
+    cell.appendChild(pack);
+    outputGrid.appendChild(cell);
+  }
+
+  // open picker
+  inputGrid.addEventListener('click', (e) => {
+    const d = e.target.closest('.input-pixel');
+    if (!d) return;
+    const r = +d.dataset.r, c = +d.dataset.c;
+    current = { r, c, elem: d };
+    selectedColor = rgbToHex(colors[r][c]);
+    colorPicker.value = selectedColor;
+    updatePresetSelection();
+    overlay.style.display = 'block';
+    colorPopup.style.display = 'flex';
+  });
+
+  // palette
+  const presets = Array.from(document.querySelectorAll('.preset-color'));
+  const updatePresetSelection = () => {
+    presets.forEach(p => p.classList.toggle('selected', p.dataset.color === selectedColor));
+  };
+  presets.forEach(p => p.addEventListener('click', () => {
+    selectedColor = p.dataset.color; colorPicker.value = selectedColor; updatePresetSelection();
+  }));
+  colorPicker.addEventListener('input', () => { selectedColor = colorPicker.value; updatePresetSelection(); });
+
+  // apply/cancel
+  function closePopup(reset=false) {
+    if (reset) { current = null; selectedColor = '#ffffff'; colorPicker.value = selectedColor; updatePresetSelection(); }
+    overlay.style.display = 'none';
+    colorPopup.style.display = 'none';
+  }
+  applyColorBtn.addEventListener('click', () => {
+    if (current) {
+      const { r, g, b } = hexToRgb(selectedColor);
+      const rgbStr = `rgb(${r},${g},${b})`;
+      colors[current.r][current.c] = rgbStr;
+      current.elem.style.background = rgbStr;
+      current = null;
+      // حذف به‌روزرسانی فوری اعداد
+    }
+    closePopup();
+  });
+  cancelColorBtn.addEventListener('click', () => closePopup(true));
+  overlay.addEventListener('click', () => closePopup(true));
+
+  // numbers update (فقط با دکمه)
+  function updateOutputs() {
+    const children = outputGrid.children;
+    let idx = 0;
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const [R,G,B] = colors[r][c].match(/\d+/g).map(Number);
+        const pack = children[idx].firstElementChild;
+        const spans = pack.querySelectorAll('.chip');
+        spans[0].textContent = R;
+        spans[1].textContent = G;
+        spans[2].textContent = B;
+        idx++;
+      }
+    }
+  }
+
+  // hover previews
+  outputGrid.addEventListener('mouseover', (e) => {
+    const cell = e.target.closest('.output-pixel');
+    if (!cell) return;
+    const idx = Array.from(outputGrid.children).indexOf(cell);
+    const r = Math.floor(idx / COLS), c = idx % COLS;
+    cell.style.background = colors[r][c];
+  });
+  outputGrid.addEventListener('mouseout', (e) => {
+    const cell = e.target.closest('.output-pixel');
+    if (!cell) return;
+    cell.style.background = '#f8fafc';
+  });
+
+  inputGrid.addEventListener('mouseover', (e) => {
+    const px = e.target.closest('.input-pixel');
+    if (!px) return;
+    const r = +px.dataset.r, c = +px.dataset.c;
+    const idx = r * COLS + c;
+    const outCell = outputGrid.children[idx];
+    if (outCell) {
+      outCell.style.background = colors[r][c];
+      outCell.style.boxShadow = '0 0 0 2px rgba(245,158,11,.45)';
+    }
+  });
+  inputGrid.addEventListener('mouseout', (e) => {
+    const px = e.target.closest('.input-pixel');
+    if (!px) return;
+    const r = +px.dataset.r, c = +px.dataset.c;
+    const idx = r * COLS + c;
+    const outCell = outputGrid.children[idx];
+    if (outCell) {
+      outCell.style.background = '#f8fafc';
+      outCell.style.boxShadow = 'none';
+    }
+  });
+
+  // convert button -> فقط این رویداد اعداد را به‌روز می‌کند
+  converterRect.addEventListener('click', () => updateOutputs());
+
+  // اولیه: صفرها نمایش داده شوند
+  updateOutputs();
+</script>
+</body>
+</html>

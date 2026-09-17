@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>مدار لچ SR</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+    <style>
+      @font-face { font-family: Vazir; src: url(https://cdn.fontcdn.ir/Font/Persian/Vazir/Vazir.woff) format("woff"); font-display: swap; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        background: #fff;
+        font-family: Vazir, system-ui;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .wrap { position: relative; width: min(900px, 96vw); height: min(520px, 80vh); }
+      #sk { width: 100%; height: 100%; }
+      .bar { position: absolute; inset-inline-end: 12px; inset-block-start: 12px; display: flex; gap: 8px; z-index: 2; }
+      button { font-family: inherit; padding: 0.35rem 0.6rem; border-radius: 8px; border: 1px solid #ccc; background: #fafafa; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div id="sk"></div>
+      <div class="bar"></div>
+    </div>
+
+    <script>
+      // colors
+      const GREEN = [46, 204, 113];
+      const RED   = [242, 80, 58];
+      const BLACK = [0, 0, 0];
+
+      let state = { a: 0, b: 0, q: 0 }; // A = Set, B = Reset, Q = output
+
+      function fit(p, parentId, baseW = 900, baseH = 520) {
+        const r = document.getElementById(parentId).getBoundingClientRect();
+        const w = Math.max(10, Math.floor(r.width)), h = Math.max(10, Math.floor(r.height));
+        if (p._renderer) p.resizeCanvas(w, h);
+        const s = Math.min(w / baseW, h / baseH), ox = (w - baseW * s) / 2, oy = (h - baseH * s) / 2;
+        return { s, ox, oy, w, h, baseW, baseH };
+      }
+
+      const sketch = (p) => {
+        const BW = 900, BH = 520;
+        let view = { s: 1, ox: 0, oy: 0 };
+        let hbInA = null, hbInB = null;
+        let orGateImg, notGateImg, andGateImg;
+
+        p.preload = () => {
+          orGateImg  = p.loadImage('OR.png');
+          notGateImg = p.loadImage('NOT.png');
+          andGateImg = p.loadImage('AND.png');
+        };
+
+        p.setup = () => {
+          const r = document.getElementById('sk').getBoundingClientRect();
+          p.createCanvas(r.width || BW, r.height || BH);
+          p.textFont('Vazir');
+          p.textAlign(p.CENTER, p.CENTER);
+        };
+
+        p.windowResized = () => { view = fit(p, 'sk', BW, BH); };
+
+        function drawInputBox(box, val, label) {
+          p.noStroke();
+          p.fill(...(val ? GREEN : RED));
+          p.rect(box.x, box.y - box.h / 2, box.w, box.h, 8);
+          p.fill(255); p.textSize(18);
+          p.text(val ? '1' : '0', box.x + box.w / 2, box.y + 1);
+          p.fill(0); p.textSize(14);
+          p.text(`ورودی ${label}`, box.x + box.w / 2, box.y - box.h / 2 - 16);
+          return { x: box.x, y: box.y - box.h / 2, w: box.w, h: box.h };
+        }
+
+        function drawOutputBox(box, val, label) {
+          p.noFill();
+          p.stroke(...(val ? GREEN : RED));
+          p.strokeWeight(6);
+          p.rect(box.x, box.y - box.h / 2, box.w, box.h, 6);
+          p.noStroke(); p.fill(...BLACK); p.textSize(18);
+          p.text(val ? '1' : '0', box.x + box.w / 2, box.y + 1);
+          p.fill(0); p.textSize(14);
+          p.text(label, box.x + box.w / 2, box.y - box.h / 2 - 16);
+        }
+
+        // draw a multi-segment wire with corner nodes
+        function drawWire(points, isOn, weight = 5.2, nodeR = 6) {
+          const col = isOn ? GREEN : RED;
+          p.stroke(...col);
+          p.strokeWeight(weight);
+          p.noFill();
+          for (let i = 0; i < points.length - 1; i++) {
+            const a = points[i], b = points[i + 1];
+            p.line(a.x, a.y, b.x, b.y);
+          }
+          // interior corners only
+          p.noStroke();
+          p.fill(...col);
+          for (let i = 1; i < points.length - 1; i++) {
+            const c = points[i];
+            p.circle(c.x, c.y, nodeR * 2);
+          }
+        }
+
+        function hit(mx, my, hb) { return hb && mx > hb.x && mx < hb.x + hb.w && my > hb.y && my < hb.y + hb.h; }
+
+        p.draw = () => {
+          view = fit(p, 'sk', BW, BH);
+          p.clear();
+          p.background(255);
+          p.push();
+          p.translate(view.ox, view.oy);
+          p.scale(view.s);
+
+          // --- Logic ---
+          const q_prev = state.q;
+          const or_out  = (state.a === 1) || (q_prev === 1); // A ∨ Q_prev
+          const not_out = !(state.b === 1);                   // ¬B
+          state.q = (or_out && not_out) ? 1 : 0;
+
+          // --- Layout ---
+          const nodeR = 7;
+          const midY = BH / 2;
+          const gatesX = BW / 2 - 100;
+
+          const inputBoxA = { x: 100, y: midY - 90 + 2,  w: 42, h: 42 };
+          const inputBoxB = { x: 100, y: midY + 125, w: 42, h: 42 };
+
+          const orGate  = { x: gatesX,       y: midY - 120, w: 140, h: 105 };
+          const notGate = { x: gatesX + 25,  y: midY + 50,  w: 150, h: 150 };
+          const andGate = { x: gatesX + 220, y: midY - 60,  w: 140, h: 105 };
+
+          const outputBox = { x: BW - 130, y: midY - 8, w: 44, h: 44 };
+
+          // OR pins
+          const or_in_top = { x: orGate.x,              y: orGate.y + orGate.h * 0.3 }; // A
+          const or_in_bot = { x: orGate.x,              y: orGate.y + orGate.h * 0.7 }; // feedback Q
+          const or_out_pt = { x: orGate.x + orGate.w - 9, y: orGate.y + orGate.h / 2 };
+
+          // NOT pins (for B)
+          const not_in     = { x: notGate.x + 40,            y: notGate.y + notGate.h / 2 };
+          const not_out_pt = { x: notGate.x + notGate.w - 10, y: notGate.y + notGate.h / 2 };
+
+          // AND pins
+          const and_in_top = { x: andGate.x + 40,            y: andGate.y + andGate.h * 0.3 };
+          const and_in_bot = { x: andGate.x + 40,            y: andGate.y + andGate.h * 0.7 };
+          const and_out_pt = { x: andGate.x + andGate.w - 40, y: andGate.y + andGate.h / 2 };
+
+          // Feedback path geometry -> OR bottom input
+          const fb_start = { x: and_out_pt.x + 20, y: and_out_pt.y };
+          const fb_c1    = { x: fb_start.x,        y: orGate.y - 30 };
+          const fb_c2    = { x: or_in_bot.x - 50,  y: fb_c1.y };
+          const fb_c3    = { x: fb_c2.x,           y: or_in_bot.y };
+
+          // --- Draw ---
+          // Inputs
+          hbInA = drawInputBox(inputBoxA, state.a, 'اول');
+          hbInB = drawInputBox(inputBoxB, state.b, 'دوم');
+
+          // Gates
+          p.image(orGateImg,  orGate.x,  orGate.y,  orGate.w,  orGate.h);
+          p.image(notGateImg, notGate.x, notGate.y, notGate.w, notGate.h);
+          p.image(andGateImg, andGate.x, andGate.y, andGate.w, andGate.h);
+
+          // Wires with corner nodes
+          // A -> OR (top), routed with two bends
+          drawWire([
+            { x: inputBoxA.x + inputBoxA.w, y: inputBoxA.y },
+            { x: or_in_top.x + 40,          y: inputBoxA.y },
+            { x: or_in_top.x + 40,          y: or_in_top.y }
+          ], !!state.a);
+
+          // B -> NOT, routed with two bends
+          drawWire([
+            { x: inputBoxB.x + inputBoxB.w, y: inputBoxB.y },
+            { x: not_in.x - 30,             y: inputBoxB.y },
+            { x: not_in.x - 30,             y: not_in.y },
+            { x: not_in.x,                  y: not_in.y }
+          ], !!state.b);
+
+          // OR -> AND (top)
+          drawWire([
+            { x: or_out_pt.x, y: or_out_pt.y },
+            { x: or_out_pt.x, y: and_in_top.y },
+            { x: and_in_top.x, y: and_in_top.y }
+          ], !!or_out);
+
+          // NOT -> AND (bottom)
+          drawWire([
+            { x: not_out_pt.x, y: not_out_pt.y },
+            { x: not_out_pt.x, y: and_in_bot.y },
+            { x: and_in_bot.x, y: and_in_bot.y }
+          ], !!not_out);
+
+          // AND -> Output (straight; no corner node)
+          drawWire([
+            { x: and_out_pt.x, y: and_out_pt.y },
+            { x: outputBox.x,  y: outputBox.y }
+          ], !!state.q);
+
+          // Feedback Q -> OR (bottom) with four bends
+          drawWire([
+            { x: and_out_pt.x, y: and_out_pt.y },
+            { x: fb_start.x,   y: fb_start.y },
+            { x: fb_c1.x,      y: fb_c1.y },
+            { x: fb_c2.x,      y: fb_c2.y },
+            { x: fb_c3.x,      y: fb_c3.y },
+            { x: or_in_bot.x,  y: or_in_bot.y }
+          ], !!state.q);
+
+          // connection node at OR bottom input (endpoint marker)
+          p.noStroke(); p.fill(...(state.q ? GREEN : RED));
+          p.circle(or_in_bot.x, or_in_bot.y, nodeR * 2);
+
+          // Output box (border-only)
+          drawOutputBox(outputBox, state.q, 'خروجی');
+
+          p.pop();
+        };
+
+        function press(px, py) {
+          const mx = (px - view.ox) / view.s, my = (py - view.oy) / view.s;
+          if (hit(mx, my, hbInA)) { state.a = 1 - state.a; }
+          if (hit(mx, my, hbInB)) { state.b = 1 - state.b; }
+        }
+
+        p.mousePressed = () => press(p.mouseX, p.mouseY);
+        p.touchStarted = () => { press(p.mouseX, p.mouseY); return false; };
+      };
+
+      new p5(sketch, 'sk');
+    </script>
+  </body>
+</html>

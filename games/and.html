@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AND Gate – Truth Table & Circuit</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+    <style>
+      @font-face {
+        font-family: "Vazir";
+        src: url("https://cdn.fontcdn.ir/Font/Persian/Vazir/Vazir.woff")
+          format("woff");
+        font-display: swap;
+      }
+
+      :root {
+        --fs-base: clamp(13px, 0.9vw + 0.25rem, 18px);
+        --fs-sm: calc(var(--fs-base) * 0.875);
+        --fs-md: var(--fs-base);
+        --fs-lg: calc(var(--fs-base) * 1.125);
+        --fs-xl: calc(var(--fs-base) * 1.35);
+
+        --box-w: clamp(220px, 90vw, 300px);
+        --box-h: clamp(300px, 70vh, 400px);
+        --radius: 14px;
+        --shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+      }
+      @media (min-width: 300px) {
+        :root {
+          --box-w: 200px;
+          --box-h: 250px;
+          --fs-base: 9px;
+        }
+      }
+      @media (min-width: 640px) {
+        :root {
+          --box-w: 280px;
+          --box-h: 420px;
+          --fs-base: 12px;
+        }
+      }
+      @media (min-width: 768px) {
+        :root {
+          --box-w: 320px;
+          --box-h: 450px;
+          --fs-base: 14px;
+        }
+      }
+      @media (min-width: 1024px) {
+        :root {
+          --box-w: 340px;
+          --box-h: 480px;
+          --fs-base: 16px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .card--circuit {
+          height: calc(var(--box-h) + 140px);
+        }
+      }
+
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        background: #fff;
+        font-family: Vazir, system-ui, -apple-system, Segoe UI, Roboto,
+          Helvetica, Arial, sans-serif;
+        font-size: var(--fs-base);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow-x: hidden;
+      }
+
+      .wrap {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        max-width: 1100px;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      @media (min-width: 300px) {
+        .wrap {
+          flex-direction: row;
+          flex-wrap: nowrap;
+          gap: 10px;
+        }
+      }
+
+      .box {
+        flex: 1 1 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 0;
+      }
+      .card {
+        width: var(--box-w);
+        height: var(--box-h);
+        background: #fff;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        margin: 0 2px;
+      }
+      .card-head {
+        padding: 10px 14px;
+        text-align: center;
+        font-size: var(--fs-lg);
+        border-bottom: 1px solid #eee;
+      }
+      .card-body {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px;
+      }
+
+      .schematic-inner {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+      }
+      .schematic-img {
+        width: calc(var(--box-w) * 0.75);
+        max-width: 90%;
+        height: auto;
+        display: block;
+      }
+
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        border-radius: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap" dir="ltr">
+      <!-- Schematic -->
+      <div class="box" dir="rtl">
+        <div class="card">
+          <div class="card-head">شماتیک گیت AND</div>
+          <div class="card-body">
+            <div class="schematic-inner">
+              <img class="schematic-img" src="AND.png" alt="AND Gate" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Circuit -->
+      <div class="box" dir="rtl">
+        <div class="card card--circuit">
+          <div class="card-head">مدار تعاملی</div>
+          <div class="card-body">
+            <div id="circuit" style="width: 100%; height: 100%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Truth table -->
+      <div class="box" dir="rtl">
+        <div class="card">
+          <div class="card-head">جدول درستی گیت AND</div>
+          <div class="card-body">
+            <div id="truth-table" style="width: 100%; height: 100%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ====== success sound ======
+      function playSuccess() {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        const ctx = new Ctx();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = "sine";
+        o.frequency.value = 880; // A5
+        o.connect(g);
+        g.connect(ctx.destination);
+        const t = ctx.currentTime;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.2, t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+        o.start(t);
+        o.stop(t + 0.37);
+      }
+
+      // ====== shared state ======
+
+      // inputs
+      const inputs = { i1: 0, i2: 0 };
+      // truth table
+      const table = [
+        { i1: 0, i2: 0, o: 0 },
+        { i1: 1, i2: 0, o: 1 },
+        { i1: 0, i2: 1, o: 1 },
+        { i1: 1, i2: 1, o: 0 },
+      ];
+      const results = [false, false, false, false];
+
+      function fitToParentCanvas(
+        p,
+        parentId,
+        baseW = 320,
+        baseH = 450,
+        isCircuit = false
+      ) {
+        const el = document.getElementById(parentId);
+        const r = el.getBoundingClientRect();
+        const w = Math.max(10, Math.floor(r.width));
+        const h = Math.max(10, Math.floor(r.height));
+        if (p._renderer) p.resizeCanvas(w, h);
+        const sx = w / baseW,
+          sy = h / baseH;
+        let s = Math.min(sx, sy);
+        if (isCircuit) s *= 1.4;
+        const ox = (w - baseW * s) / 2,
+          oy = (h - baseH * s) / 2;
+        return { s, ox, oy, w, h, baseW, baseH };
+      }
+
+      function highlightedIndex() {
+        for (let i = 0; i < table.length; i++) {
+          if (table[i].i1 === inputs.i1 && table[i].i2 === inputs.i2) return i;
+        }
+        return -1;
+      }
+
+      // ========= Truth table sketch =========
+      (function setupTruthTable() {
+        const sketch = function (p) {
+          const BASE_W = 320,
+            BASE_H = 450;
+          let view = { s: 1, ox: 0, oy: 0 };
+
+          const startY = 60,
+            rowGap = 60,
+            cellW = 40,
+            cellH = 40;
+          const c1 = 60,
+            c2 = c1 + 70,
+            c3 = c2 + 70,
+            c4 = c3 + 70;
+
+          let ttAllValid = false; // lock and sound gate
+
+          p.setup = function () {
+            const r = document
+              .getElementById("truth-table")
+              .getBoundingClientRect();
+            p.createCanvas(r.width || BASE_W, r.height || BASE_H);
+            p.textAlign(p.CENTER, p.CENTER);
+            p.textFont("Vazir");
+          };
+
+          p.windowResized = function () {
+            view = fitToParentCanvas(p, "truth-table", BASE_W, BASE_H);
+          };
+
+          p.draw = function () {
+            const currentAllValid =
+              table[0].o === 0 &&
+              table[1].o === 0 &&
+              table[2].o === 0 &&
+              table[3].o === 1;
+
+            if (currentAllValid && !ttAllValid) playSuccess();
+            ttAllValid = currentAllValid;
+
+            view = fitToParentCanvas(p, "truth-table", BASE_W, BASE_H);
+            p.clear();
+            p.background(255);
+
+            p.push();
+            p.translate(view.ox, view.oy);
+            p.scale(view.s);
+
+            // headers
+            p.textSize(18);
+            p.fill(0);
+            p.text("ورودی ۱", c1, startY - 25);
+            p.text("ورودی ۲", c2, startY - 25);
+            p.text("خروجی", c3, startY - 25);
+            p.text("نتیجه", c4, startY - 25);
+
+            // column separators
+            const yTop = startY - 35;
+            const yBot = startY + 3 * rowGap + cellH + 10;
+            p.stroke(180);
+            p.strokeWeight(1);
+            p.line((c1 + c2) / 2, yTop, (c1 + c2) / 2, yBot);
+            p.line((c2 + c3) / 2, yTop, (c2 + c3) / 2, yBot);
+            p.line((c3 + c4) / 2, yTop, (c3 + c4) / 2, yBot);
+
+            const hi = highlightedIndex();
+
+            for (let i = 0; i < table.length; i++) {
+              const y = startY + i * rowGap;
+              const canEdit = i === hi && !ttAllValid;
+              const dim = i !== hi && !ttAllValid;
+
+              // highlight row
+              if (canEdit && !ttAllValid) {
+                const x = c1 - 32,
+                  w = c4,
+                  h = cellH + 23,
+                  r = 10;
+
+                p.push();
+                const ctx = p.drawingContext;
+                ctx.save();
+                ctx.globalCompositeOperation = "destination-over";
+                p.noStroke();
+                p.fill(255, 245, 180, 140);
+                p.rect(x, y - 8, w, h, r);
+                ctx.restore();
+                p.pop();
+
+                p.push();
+                const dash = 6,
+                  gap = 6;
+                p.noFill();
+                p.stroke(255, 200, 0);
+                p.strokeWeight(2);
+                p.drawingContext.setLineDash([dash, gap]);
+                p.drawingContext.lineDashOffset = -(
+                  p.frameCount %
+                  (dash + gap)
+                );
+                p.rect(x, y - 8, w, h, r);
+                p.drawingContext.setLineDash([]);
+                p.pop();
+              }
+
+              // dim non-highlighted content
+              p.push();
+              if (dim) p.drawingContext.globalAlpha = 0.38;
+
+              // input1
+              p.noStroke();
+              p.fill(
+                table[i].i1 ? p.color(46, 204, 113) : p.color(242, 80, 58)
+              );
+              p.rect(c1 - cellW / 2, y, cellW, cellH, 10);
+              p.fill(dim ? 90 : 255);
+              p.textSize(16);
+              p.text(table[i].i1, c1, y + cellH / 2);
+
+              // input2
+              p.noStroke();
+              p.fill(
+                table[i].i2 ? p.color(46, 204, 113) : p.color(242, 80, 58)
+              );
+              p.rect(c2 - cellW / 2, y, cellW, cellH, 10);
+              p.fill(dim ? 90 : 255);
+              p.text(table[i].i2, c2, y + cellH / 2);
+
+              // output (toggleable only on highlighted row)
+              const outVal = table[i].o;
+              p.stroke(outVal ? p.color(46, 204, 113) : p.color(242, 80, 58));
+              p.strokeWeight(canEdit ? 3 : 1.5);
+              if (dim) p.stroke(170);
+              p.fill(canEdit ? 255 : 232);
+              p.rect(c3 - cellW / 2, y, cellW, cellH, 10);
+
+              p.noStroke();
+              p.fill(dim ? 80 : 0);
+              p.text(outVal, c3, y + cellH / 2);
+              if (canEdit && !ttAllValid) {
+                p.textSize(10);
+                p.text("کلیک کنید!", c3, y + cellH + 10);
+              }
+
+              // result
+              const expected = table[i].i1 & table[i].i2;
+              results[i] = outVal === expected;
+              p.textSize(22);
+              if (dim) {
+                p.fill(150);
+              } else {
+                p.fill(
+                  results[i] ? p.color(46, 204, 113) : p.color(242, 80, 58)
+                );
+              }
+              p.text(results[i] ? "✅" : "❌", c4, y + cellH / 2);
+
+              p.pop();
+            }
+
+            p.textSize(16);
+            p.fill(ttAllValid ? p.color(46, 204, 113) : p.color(242, 80, 58));
+            p.text(
+              ttAllValid ? "پاسخ درست است" : "پاسخ نادرست است",
+              (c2 + c3) / 2,
+              350
+            );
+
+            p.pop();
+          };
+
+          p.mousePressed = function () {
+            if (ttAllValid) return; // lock after success
+
+            const mx = (p.mouseX - view.ox) / view.s;
+            const my = (p.mouseY - view.oy) / view.s;
+
+            const hi = highlightedIndex();
+            if (hi < 0) return;
+
+            const x0 = c3 - cellW / 2;
+            const y0 = startY + hi * rowGap;
+            if (mx > x0 && mx < x0 + cellW && my > y0 && my < y0 + cellH) {
+              table[hi].o = 1 - table[hi].o; // toggle only highlighted row
+            }
+          };
+        };
+        new p5(sketch, "truth-table");
+      })();
+
+      // ========= Circuit sketch =========
+      (function setupCircuit() {
+        const sketch = function (p) {
+          const BASE_W = 320,
+            BASE_H = 450;
+          let view = { s: 1, ox: 0, oy: 0 };
+          let switch1On = false;
+          let switch2On = false;
+
+          p.setup = function () {
+            const r = document
+              .getElementById("circuit")
+              .getBoundingClientRect();
+            p.createCanvas(r.width || BASE_W, r.height || BASE_H);
+            p.textAlign(p.CENTER, p.CENTER);
+            p.textSize(16);
+            p.textFont("Vazir");
+          };
+
+          p.windowResized = function () {
+            view = fitToParentCanvas(p, "circuit", BASE_W, BASE_H, true);
+          };
+
+          p.draw = function () {
+            view = fitToParentCanvas(p, "circuit", BASE_W, BASE_H, true);
+            p.clear();
+            p.background(255);
+            p.push();
+            p.translate(view.ox, view.oy);
+            p.scale(view.s);
+            drawCircuit();
+            p.pop();
+          };
+
+          function drawCircuit() {
+            const centerX = 160,
+              centerY = 200,
+              w = 150,
+              h = 90;
+
+            p.stroke(0);
+            p.strokeWeight(3);
+            p.noFill();
+            p.line(
+              centerX - w / 2,
+              centerY - h / 2,
+              centerX + w / 2,
+              centerY - h / 2
+            );
+            p.line(
+              centerX + w / 2,
+              centerY - h / 2,
+              centerX + w / 2,
+              centerY + h / 2
+            );
+            p.line(
+              centerX + w / 2,
+              centerY + h / 2,
+              centerX + 45,
+              centerY + h / 2
+            );
+            p.line(
+              centerX + 15,
+              centerY + h / 2,
+              centerX - 15,
+              centerY + h / 2
+            );
+            p.line(
+              centerX - 45,
+              centerY + h / 2,
+              centerX - w / 2,
+              centerY + h / 2
+            );
+            p.line(
+              centerX - w / 2,
+              centerY + h / 2,
+              centerX - w / 2,
+              centerY - h / 2
+            );
+
+            drawBattery(centerX - w / 2, centerY);
+            drawResistor(centerX, centerY - h / 2);
+            drawBulb(centerX + w / 2, centerY);
+            drawSwitch(centerX - 30, centerY + h / 2, switch1On, 1);
+            drawSwitch(centerX + 30, centerY + h / 2, switch2On, 2);
+          }
+
+          function drawBattery(x, y) {
+            p.push();
+            p.translate(x, y);
+            p.stroke(0);
+            p.strokeWeight(4);
+            p.line(-15, 0, 15, 0);
+            p.strokeWeight(3);
+            p.line(-10, 8, 10, 8);
+            p.noStroke();
+            p.fill(0);
+            p.textSize(10);
+            p.text("باتری", -30, 3);
+            p.pop();
+          }
+
+          function drawResistor(x, y) {
+            p.push();
+            p.translate(x, y);
+            p.stroke(0);
+            p.strokeWeight(3);
+            p.noFill();
+            p.beginShape();
+            p.vertex(-22, 0);
+            p.vertex(-15, 0);
+            p.vertex(-11, -8);
+            p.vertex(-4, 8);
+            p.vertex(4, -8);
+            p.vertex(11, 8);
+            p.vertex(15, 0);
+            p.vertex(22, 0);
+            p.endShape();
+            p.noStroke();
+            p.fill(0);
+            p.textSize(10);
+            p.text("مقاومت", 0, 20);
+            p.text("R", 0, -15);
+            p.pop();
+          }
+
+          function drawBulb(x, y) {
+            const on = switch1On && switch2On;
+            p.push();
+            p.translate(x, y);
+            p.stroke(0);
+            p.strokeWeight(2);
+            p.fill(on ? p.color(255, 255, 0) : 255);
+            p.ellipse(0, 0, 30, 30);
+            p.stroke(on ? p.color(255, 150, 0) : 0);
+            p.strokeWeight(on ? 2 : 1);
+            p.line(-6, -6, 6, 6);
+            p.line(-6, 6, 6, -6);
+            p.noStroke();
+            p.fill(0);
+            p.textSize(10);
+            p.text(on ? "لامپ روشن" : "لامپ خاموش", -47, 0);
+            p.pop();
+          }
+
+          function drawSwitch(x, y, isOn, num) {
+            p.push();
+            p.translate(x, y);
+            p.stroke(0);
+            p.strokeWeight(3);
+            p.fill(0);
+            p.ellipse(-15, 0, 5, 5);
+            p.ellipse(15, 0, 5, 5);
+            if (isOn) {
+              p.stroke(0, 150, 0);
+              p.strokeWeight(4);
+              p.line(-15, 0, 15, 0);
+            } else {
+              p.stroke(255, 0, 0);
+              p.strokeWeight(3);
+              p.line(-15, 0, 10, -12);
+            }
+            p.noStroke();
+            p.fill(0);
+            p.textSize(10);
+            p.text(`سوئیچ ${num}`, 0, 20);
+            p.text(isOn ? "بسته" : "باز", 0, 32);
+            p.pop();
+          }
+
+          function handlePress() {
+            const mx = (p.mouseX - view.ox) / view.s;
+            const my = (p.mouseY - view.oy) / view.s;
+
+            const switch1X = 160 - 30;
+            const switch2X = 160 + 30;
+            const switchY = 200 + 45;
+            const d1 = Math.hypot(mx - switch1X, my - switchY);
+            const d2 = Math.hypot(mx - switch2X, my - switchY);
+
+            if (d1 < 20) switch1On = !switch1On;
+            if (d2 < 20) switch2On = !switch2On;
+
+            inputs.i1 = switch1On ? 1 : 0;
+            inputs.i2 = switch2On ? 1 : 0;
+          }
+
+          let handledTouch = false;
+
+          p.touchStarted = function () {
+            handlePress();
+            handledTouch = true;
+            return false;
+          };
+          p.touchEnded = function () {
+            handledTouch = false;
+          };
+          p.mousePressed = function () {
+            if (handledTouch || p.touches.length) return;
+            handlePress();
+          };
+        };
+        new p5(sketch, "circuit");
+      })();
+    </script>
+  </body>
+</html>

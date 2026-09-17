@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>نیم‌جمع‌کننده – نماد، جمع روی کاغذ، جدول درستی</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+    <style>
+      @font-face {
+        font-family: "Vazir";
+        src: url("https://cdn.fontcdn.ir/Font/Persian/Vazir/Vazir.woff")
+          format("woff");
+        font-display: swap;
+      }
+
+      :root {
+        --fs-base: clamp(13px, 0.9vw + 0.25rem, 18px);
+        --fs-lg: calc(var(--fs-base) * 1.125);
+        --box-w: clamp(220px, 90vw, 300px);
+        --box-h: clamp(300px, 70vh, 400px);
+        --radius: 14px;
+        --shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+      }
+      @media (min-width: 300px) {
+        :root {
+          --box-w: 200px;
+          --box-h: 250px;
+          --fs-base: 9px;
+        }
+      }
+      @media (min-width: 640px) {
+        :root {
+          --box-w: 280px;
+          --box-h: 420px;
+          --fs-base: 12px;
+        }
+      }
+      @media (min-width: 768px) {
+        :root {
+          --box-w: 320px;
+          --box-h: 450px;
+          --fs-base: 14px;
+        }
+      }
+      @media (min-width: 1024px) {
+        :root {
+          --box-w: 340px;
+          --box-h: 480px;
+          --fs-base: 16px;
+        }
+      }
+
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        background: #fff;
+        font-family: Vazir, system-ui, -apple-system, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+        font-size: var(--fs-base);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow-x: hidden;
+      }
+      .wrap {
+        display: flex;
+        flex-direction: row;
+        gap: 10px;
+        width: 100%;
+        max-width: 1100px;
+        align-items: center;
+        justify-content: center;
+      }
+      .box {
+        flex: 1 1 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 0;
+      }
+      .card {
+        width: var(--box-w);
+        height: var(--box-h);
+        background: #fff;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        margin: 0 2px;
+      }
+      .card-head {
+        padding: 10px 14px;
+        text-align: center;
+        font-size: var(--fs-lg);
+        border-bottom: 1px solid #eee;
+      }
+      .card-body {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap" dir="ltr">
+      <!-- Card 1: Half-Adder symbol -->
+      <div class="box" dir="rtl">
+        <div class="card">
+          <div class="card-head">نماد بلوک جمع‌کننده</div>
+          <div class="card-body">
+            <div id="symbol" style="width: 100%; height: 100%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2: Column addition on paper (inputs aligned to S, labels added) -->
+      <div class="box" dir="rtl">
+        <div class="card">
+          <div class="card-head">جمع ستونی</div>
+          <div class="card-body">
+            <div id="paper" style="width: 100%; height: 100%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3: Truth table with smart active row -->
+      <div class="box" dir="rtl">
+        <div class="card">
+          <div class="card-head">جدول درستی</div>
+          <div class="card-body">
+            <div id="truth-table" style="width: 100%; height: 100%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ---------- responsive scaling ----------
+      function fitToParentCanvas(p, parentId, baseW = 320, baseH = 450) {
+        const el = document.getElementById(parentId);
+        const r = el.getBoundingClientRect();
+        const w = Math.max(10, Math.floor(r.width));
+        const h = Math.max(10, Math.floor(r.height));
+        if (p._renderer) p.resizeCanvas(w, h);
+        const sx = w / baseW,
+          sy = h / baseH;
+        const s = Math.min(sx, sy);
+        const ox = (w - baseW * s) / 2,
+          oy = (h - baseH * s) / 2;
+        return { s, ox, oy, w, h, baseW, baseH };
+      }
+
+      // ---------- shared state ----------
+      const rows = [
+        { a: 0, b: 0, s: 0, c: 0 },
+        { a: 1, b: 0, s: 0, c: 0 },
+        { a: 0, b: 1, s: 0, c: 0 },
+        { a: 1, b: 1, s: 0, c: 0 },
+      ];
+      const inputs = { a: 0, b: 0 };
+      function currentIndex() {
+        return inputs.b * 2 + inputs.a;
+      }
+      function expectedSum(a, b) {
+        return a ^ b;
+      }
+      function expectedCarry(a, b) {
+        return a & b;
+      }
+      function setInput(a, b) {
+        inputs.a = a ? 1 : 0;
+        inputs.b = b ? 1 : 0;
+      }
+      function setOutputsForCurrent(s, c) {
+        const i = currentIndex();
+        rows[i].s = s ? 1 : 0;
+        rows[i].c = c ? 1 : 0;
+      }
+
+      // ---------- Card 1: Symbol ----------
+      (function () {
+        const sketch = function (p) {
+          const BASE_W = 320,
+            BASE_H = 450;
+          let view = { s: 1, ox: 0, oy: 0 };
+          let hbA = null,
+            hbB = null,
+            hbS = null,
+            hbC = null;
+
+          // colors
+          let GREEN1, GREEN2, RED1, RED2, COLOR_LABEL, COLOR_TEXT;
+          p.setup = function () {
+            const r = document.getElementById("symbol").getBoundingClientRect();
+            p.createCanvas(r.width || BASE_W, r.height || BASE_H);
+            p.textAlign(p.CENTER, p.CENTER);
+            p.textFont("Vazir");
+
+            GREEN1 = p.color(46, 204, 113);
+            GREEN2 = p.lerpColor(GREEN1, p.color(255), 0.35);
+            RED1 = p.color(242, 80, 58);
+            RED2 = p.lerpColor(RED1, p.color(255), 0.35);
+            COLOR_LABEL = p.color(40);
+            COLOR_TEXT = p.color(255);
+          };
+          p.windowResized = function () {
+            view = fitToParentCanvas(p, "symbol", BASE_W, BASE_H);
+          };
+
+          // base arrowed wire
+          function drawArrowLine(x1, y1, x2, y2, col, w = 2.5, ah = 8) {
+            p.stroke(col);
+            p.strokeWeight(w);
+            p.line(x1, y1, x2, y2);
+            const ang = Math.atan2(y2 - y1, x2 - x1);
+            p.noStroke();
+            p.fill(col);
+            const hx = Math.cos(ang),
+              hy = Math.sin(ang);
+            const ax = x2,
+              ay = y2;
+            const p1x = ax - ah * hx;
+            const p1y = ay - ah * hy;
+            const leftx = p1x + ah * 0.6 * -hy;
+            const lefty = p1y + ah * 0.6 * hx;
+            const rightx = p1x - ah * 0.6 * -hy;
+            const righty = p1y - ah * 0.6 * hx;
+            p.triangle(ax, ay, leftx, lefty, rightx, righty);
+          }
+
+          // animated flow dots along a segment
+          function drawFlow(x1, y1, x2, y2, isOn) {
+            const cA1 = isOn ? GREEN1 : RED1;
+            const cA2 = isOn ? GREEN2 : RED2;
+
+            // geometry
+            const dx = x2 - x1,
+              dy = y2 - y1;
+            const L = Math.hypot(dx, dy);
+            if (L < 1) return;
+            const ux = dx / L,
+              uy = dy / L;
+
+            // animation params
+            const spacing = 12; // px between dots
+            const speed = 0.7; // px/frame
+            const r = 2.4; // dot radius
+            const phase = (p.frameCount * speed) % spacing;
+
+            // alternate two shades
+            for (let d = phase; d < L - 10; d += spacing) {
+              const t = d / L;
+              const x = x1 + ux * d;
+              const y = y1 + uy * d;
+              p.noStroke();
+              p.fill(((d / spacing) | 0) % 2 === 0 ? cA1 : cA2);
+              p.circle(x, y, r * 2);
+            }
+          }
+
+          function drawIOBox(x, y, w, h, val, label) {
+            const col = val ? GREEN1 : RED1;
+            p.noStroke();
+            p.fill(col);
+            p.rect(x, y, w, h, 10);
+            p.fill(COLOR_TEXT);
+            p.textSize(Math.min(h * 0.5, 22));
+            p.text(val, x + w / 2, y + h / 2 + 1);
+            p.fill(COLOR_LABEL);
+            p.textSize(Math.min(h * 0.35, 16));
+            p.text(label, x + w / 2, y - Math.min(h * 0.35, 16) - 2);
+          }
+
+          function hit(mx, my, hb) {
+            return (
+              hb &&
+              mx > hb.x &&
+              mx < hb.x + hb.w &&
+              my > hb.y &&
+              my < hb.y + hb.h
+            );
+          }
+
+          p.draw = function () {
+            view = fitToParentCanvas(p, "symbol", BASE_W, BASE_H);
+            p.clear();
+            p.background(255);
+            p.push();
+            p.translate(view.ox, view.oy);
+            p.scale(view.s);
+
+            const W = BASE_W,
+              H = BASE_H;
+            const margin = Math.min(W, H) * 0.07;
+            const gateW = W * 0.34,
+              gateH = H * 0.38;
+            const gateX = (W - gateW) / 2,
+              gateY = H * 0.22;
+            const boxSize = Math.min(W, H) * 0.11;
+            const leftX = margin,
+              rightX = W - margin - boxSize;
+
+            const aY = gateY + gateH * 0.25 - boxSize / 2;
+            const bY = gateY + gateH * 0.75 - boxSize / 2;
+
+            // input toggles
+            drawIOBox(leftX, aY, boxSize, boxSize, inputs.a, "A");
+            drawIOBox(leftX, bY, boxSize, boxSize, inputs.b, "B");
+            hbA = { x: leftX, y: aY, w: boxSize, h: boxSize };
+            hbB = { x: leftX, y: bY, w: boxSize, h: boxSize };
+
+            // gate box
+            p.noFill();
+            p.stroke(0);
+            p.strokeWeight(3);
+            p.rect(gateX, gateY, gateW, gateH, 6);
+
+            // plus sign
+            p.noStroke();
+            p.fill(0);
+            let plusSize = Math.min(gateH * 0.45, 40);
+            p.textSize(plusSize);
+            p.text("+", gateX + gateW / 2, gateY + gateH / 2 + 1);
+
+            // wires
+            const aWireY = aY + boxSize / 2;
+            const bWireY = bY + boxSize / 2;
+            const sY = gateY + gateH * 0.25;
+            const cY = gateY + gateH * 0.75;
+
+            // base colored wires + arrowheads
+            drawArrowLine(
+              leftX + boxSize,
+              aWireY,
+              gateX,
+              aWireY,
+              inputs.a ? GREEN1 : RED1,
+              2.5,
+              8
+            );
+            drawArrowLine(
+              leftX + boxSize,
+              bWireY,
+              gateX,
+              bWireY,
+              inputs.b ? GREEN1 : RED1,
+              2.5,
+              8
+            );
+
+            const i = currentIndex();
+            const sVal = rows[i].s;
+            const cVal = rows[i].c;
+            drawArrowLine(
+              gateX + gateW,
+              sY,
+              rightX,
+              sY,
+              sVal ? GREEN1 : RED1,
+              2.5,
+              8
+            );
+            drawArrowLine(
+              gateX + gateW,
+              cY,
+              rightX,
+              cY,
+              cVal ? GREEN1 : RED1,
+              2.5,
+              8
+            );
+
+            // animated flow overlays
+            drawFlow(leftX + boxSize, aWireY, gateX, aWireY, !!inputs.a);
+            drawFlow(leftX + boxSize, bWireY, gateX, bWireY, !!inputs.b);
+            drawFlow(gateX + gateW, sY, rightX, sY, !!sVal);
+            drawFlow(gateX + gateW, cY, rightX, cY, !!cVal);
+
+            // outputs
+            drawIOBox(rightX, sY - boxSize / 2, boxSize, boxSize, sVal, "S");
+            drawIOBox(rightX, cY - boxSize / 2, boxSize, boxSize, cVal, "Cₒᵤₜ");
+            hbS = { x: rightX, y: sY - boxSize / 2, w: boxSize, h: boxSize };
+            hbC = { x: rightX, y: cY - boxSize / 2, w: boxSize, h: boxSize };
+
+            p.pop();
+          };
+
+          function press(px, py) {
+            const mx = (px - view.ox) / view.s,
+              my = (py - view.oy) / view.s;
+            if (hit(mx, my, hbA)) setInput(1 - inputs.a, inputs.b);
+            else if (hit(mx, my, hbB)) setInput(inputs.a, 1 - inputs.b);
+            else if (hit(mx, my, hbS))
+              setOutputsForCurrent(
+                1 - rows[currentIndex()].s,
+                rows[currentIndex()].c
+              );
+            else if (hit(mx, my, hbC))
+              setOutputsForCurrent(
+                rows[currentIndex()].s,
+                1 - rows[currentIndex()].c
+              );
+          }
+          p.mousePressed = function () {
+            press(p.mouseX, p.mouseY);
+          };
+          p.touchStarted = function () {
+            press(p.mouseX, p.mouseY);
+            return false;
+          };
+        };
+        new p5(sketch, "symbol");
+      })();
+
+      // ---------- Card 2: Column addition (inputs aligned to S, labels on inputs) ----------
+      (function () {
+        const sketch = function (p) {
+          const BASE_W = 320,
+            BASE_H = 450;
+          let view = { s: 1, ox: 0, oy: 0 };
+
+          p.setup = function () {
+            const r = document.getElementById("paper").getBoundingClientRect();
+            p.createCanvas(r.width || BASE_W, r.height || BASE_H);
+            p.textAlign(p.CENTER, p.BASELINE);
+            p.textFont("Vazir");
+          };
+          p.windowResized = function () {
+            view = fitToParentCanvas(p, "paper", BASE_W, BASE_H);
+          };
+
+          p.draw = function () {
+            view = fitToParentCanvas(p, "paper", BASE_W, BASE_H);
+            p.clear();
+            p.background(255);
+            p.push();
+            p.translate(view.ox, view.oy);
+            p.scale(view.s);
+
+            const W = BASE_W,
+              H = BASE_H;
+            const xS = W * 0.55; // sum column center
+            const digitSize = Math.min(H * 0.14, 46);
+            const rowGap = digitSize * 0.95; // larger spacing
+            const carryOffset = digitSize * 0.85;
+
+            // vertically center the whole block
+            const blockH =
+              digitSize /*A*/ +
+              rowGap +
+              digitSize /*B*/ +
+              digitSize * 0.4 /*space to rule*/ +
+              digitSize * 0.95 /*space to outputs*/ +
+              digitSize; /*outputs row*/
+            const yA = (H - blockH) / 2 + digitSize; // A baseline
+            const yB = yA + rowGap; // B baseline
+
+            // state
+            const i = currentIndex();
+            const a = inputs.a,
+              b = inputs.b;
+            const sUser = rows[i].s,
+              cUser = rows[i].c;
+
+            // A row (aligned to S column), with label
+            p.noStroke();
+            p.fill(0);
+            p.textSize(digitSize);
+            p.text(a, xS, yA);
+            p.textSize(Math.max(11, digitSize * 0.45));
+            p.fill(90);
+            p.text("A", xS + carryOffset, yA); // small label on the right
+
+            // plus sign aligned with B
+            p.textSize(digitSize * 0.8);
+            p.fill(0);
+            p.text("+", xS - carryOffset * 1.2, yB);
+
+            // B row (aligned to S column), with label
+            p.textSize(digitSize);
+            p.fill(0);
+            p.text(b, xS, yB);
+            p.textSize(Math.max(11, digitSize * 0.45));
+            p.fill(90);
+            p.text("B", xS + carryOffset, yB);
+
+            // horizontal rule under B
+            const lineY = yB + digitSize * 0.4;
+            p.stroke(0);
+            p.strokeWeight(2);
+            p.line(
+              xS - carryOffset * 1.2,
+              lineY,
+              xS + carryOffset * 0.9,
+              lineY
+            );
+
+            // outputs row on last line: [COUT] [S]
+            const yOut = lineY + digitSize * 0.95;
+            p.noStroke();
+            p.fill(0);
+            p.textSize(digitSize);
+
+            const colGap = digitSize * 0.7; // space between COUT and S
+            p.text(cUser, xS - colGap, yOut); // carry-left
+            p.text(sUser, xS, yOut); // sum-right
+
+            // labels below outputs
+            p.textSize(Math.max(11, digitSize * 0.45));
+            p.fill(90);
+            p.text("Cₒᵤₜ", xS - colGap, yOut + digitSize * 0.75);
+            p.text("S", xS + 6, yOut + digitSize * 0.75);
+
+            p.pop();
+          };
+        };
+        new p5(sketch, "paper");
+      })();
+
+      // ---------- Card 3: Truth table (active row + dim others) ----------
+      (function setupTruthTable() {
+        const sketch = function (p) {
+          const BASE_W = 320,
+            BASE_H = 450;
+          let view = { s: 1, ox: 0, oy: 0 };
+
+          // layout
+          const startY = 60,
+            rowGap = 60,
+            cellW = 40,
+            cellH = 40;
+          const colGap = 60;
+          const cA = 30,
+            cB = cA + colGap,
+            cS = cB + colGap,
+            cC = cS + colGap,
+            cR = cC + colGap;
+
+          p.setup = function () {
+            const r = document
+              .getElementById("truth-table")
+              .getBoundingClientRect();
+            p.createCanvas(r.width || BASE_W, r.height || BASE_H);
+            p.textAlign(p.CENTER, p.CENTER);
+            p.textFont("Vazir");
+          };
+          p.windowResized = function () {
+            view = fitToParentCanvas(p, "truth-table", BASE_W, BASE_H);
+          };
+
+          function highlightedIndex() {
+            for (let i = 0; i < rows.length; i++)
+              if (rows[i].a === inputs.a && rows[i].b === inputs.b) return i;
+            return -1;
+          }
+
+          p.draw = function () {
+            view = fitToParentCanvas(p, "truth-table", BASE_W, BASE_H);
+            p.clear();
+            p.background(255);
+            p.push();
+            p.translate(view.ox, view.oy);
+            p.scale(view.s);
+
+            // headers
+            p.textSize(18);
+            p.fill(0);
+            p.text("A", cA, startY - 25);
+            p.text("B", cB, startY - 25);
+            p.text("S", cS, startY - 25);
+            p.text("Cₒᵤₜ", cC, startY - 25);
+            p.text("نتیجه", cR, startY - 25);
+
+            // columns
+            const yTop = startY - 35,
+              yBot = startY + 3 * rowGap + cellH + 10;
+            p.stroke(180);
+            p.strokeWeight(1);
+            p.line((cA + cB) / 2, yTop, (cA + cB) / 2, yBot);
+            p.line((cB + cS) / 2, yTop, (cB + cS) / 2, yBot);
+            p.line((cS + cC) / 2, yTop, (cS + cC) / 2, yBot);
+            p.line((cC + cR) / 2, yTop, (cC + cR) / 2, yBot);
+
+            const hi = highlightedIndex();
+            let allValid = true;
+
+            for (let i = 0; i < rows.length; i++) {
+              const y = startY + i * rowGap;
+              const isActive = i === hi;
+              const dim = !isActive;
+
+              if (isActive) {
+                const x = cA - 32,
+                  w = cR + 25,
+                  h = cellH + 16,
+                  r = 10;
+                p.push();
+                const ctx = p.drawingContext;
+                ctx.save();
+                ctx.globalCompositeOperation = "destination-over";
+                p.noStroke();
+                p.fill(255, 245, 180, 140);
+                p.rect(x, y - 8, w, h, r);
+                ctx.restore();
+                p.pop();
+
+                p.push();
+                const dash = 6,
+                  gap = 6;
+                p.noFill();
+                p.stroke(255, 200, 0);
+                p.strokeWeight(2);
+                p.drawingContext.setLineDash([dash, gap]);
+                p.drawingContext.lineDashOffset = -(
+                  p.frameCount %
+                  (dash + gap)
+                );
+                p.rect(x, y - 8, w, h, r);
+                p.drawingContext.setLineDash([]);
+                p.pop();
+              }
+
+              p.push();
+              if (dim) p.drawingContext.globalAlpha = 0.38;
+
+              // A
+              p.noStroke();
+              p.fill(rows[i].a ? p.color(46, 204, 113) : p.color(242, 80, 58));
+              p.rect(cA - cellW / 2, y, cellW, cellH, 10);
+              p.fill(dim ? 90 : 255);
+              p.textSize(16);
+              p.text(rows[i].a, cA, y + cellH / 2);
+
+              // B
+              p.noStroke();
+              p.fill(rows[i].b ? p.color(46, 204, 113) : p.color(242, 80, 58));
+              p.rect(cB - cellW / 2, y, cellW, cellH, 10);
+              p.fill(dim ? 90 : 255);
+              p.text(rows[i].b, cB, y + cellH / 2);
+
+              // S
+              const outS = rows[i].s;
+              p.stroke(
+                dim ? 170 : outS ? p.color(46, 204, 113) : p.color(242, 80, 58)
+              );
+              p.strokeWeight(isActive ? 3 : 1.5);
+              p.fill(isActive ? 255 : 232);
+              p.rect(cS - cellW / 2, y, cellW, cellH, 10);
+              p.noStroke();
+              p.fill(dim ? 80 : 0);
+              p.text(outS, cS, y + cellH / 2);
+
+              // C
+              const outC = rows[i].c;
+              p.stroke(
+                dim ? 170 : outC ? p.color(46, 204, 113) : p.color(242, 80, 58)
+              );
+              p.strokeWeight(isActive ? 3 : 1.5);
+              p.fill(isActive ? 255 : 232);
+              p.rect(cC - cellW / 2, y, cellW, cellH, 10);
+              p.noStroke();
+              p.fill(dim ? 80 : 0);
+              p.text(outC, cC, y + cellH / 2);
+
+              // result
+              const ok =
+                outS === expectedSum(rows[i].a, rows[i].b) &&
+                outC === expectedCarry(rows[i].a, rows[i].b);
+              if (!ok) allValid = false;
+              p.textSize(22);
+              p.fill(
+                dim ? 0 : ok ? p.color(46, 204, 113) : p.color(242, 80, 58)
+              );
+              p.text(ok ? "✅" : "❌", cR, y + cellH / 2);
+
+              p.pop();
+            }
+
+            p.textSize(16);
+            p.fill(allValid ? p.color(46, 204, 113) : p.color(242, 80, 58));
+            p.text(
+              allValid ? "پاسخ درست است" : "پاسخ نادرست است",
+              (cB + cC) / 2,
+              350
+            );
+
+            p.pop();
+          };
+
+          function handlePress(px, py) {
+            const mx = (px - view.ox) / view.s,
+              my = (py - view.oy) / view.s;
+
+            for (let i = 0; i < rows.length; i++) {
+              const y = startY + i * rowGap;
+              let x0 = cA - cellW / 2,
+                y0 = y;
+              if (mx > x0 && mx < x0 + cellW && my > y0 && my < y0 + cellH) {
+                setInput(rows[i].a, rows[i].b);
+                return;
+              }
+              x0 = cB - cellW / 2;
+              if (mx > x0 && mx < x0 + cellW && my > y0 && my < y0 + cellH) {
+                setInput(rows[i].a, rows[i].b);
+                return;
+              }
+            }
+
+            const hi = currentIndex();
+            const yAct = startY + hi * rowGap;
+            let x0 = cS - cellW / 2,
+              y0 = yAct;
+            if (mx > x0 && mx < x0 + cellW && my > y0 && my < y0 + cellH) {
+              rows[hi].s = 1 - rows[hi].s;
+              return;
+            }
+            x0 = cC - cellW / 2;
+            if (mx > x0 && mx < x0 + cellW && my > y0 && my < y0 + cellH) {
+              rows[hi].c = 1 - rows[hi].c;
+              return;
+            }
+          }
+
+          p.mousePressed = function () {
+            handlePress(p.mouseX, p.mouseY);
+          };
+          p.touchStarted = function () {
+            handlePress(p.mouseX, p.mouseY);
+            return false;
+          };
+        };
+        new p5(sketch, "truth-table");
+      })();
+    </script>
+  </body>
+</html>

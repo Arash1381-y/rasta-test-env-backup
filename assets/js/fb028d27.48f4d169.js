@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkrasta_hardware=self.webpackChunkrasta_hardware||[]).push([[7856],{4745:a=>{a.exports=JSON.parse('{"metadata":{"permalink":"/rasta-test-env-backup/blog","page":1,"postsPerPage":10,"totalPages":1,"totalCount":4,"blogDescription":"Blog","blogTitle":"Blog"}}')}}]);

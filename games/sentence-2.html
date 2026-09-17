@@ -1,0 +1,291 @@
+
+
+
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>مینی‌گیم جمله‌سازی</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;500;800&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html,body{background:transparent!important;font-family:"Vazirmatn",sans-serif}
+    .token{user-select:none;cursor:grab;touch-action:none}
+    /* only disable WebKit native drag on coarse pointers (touch) */
+    @media (pointer: coarse){
+      .token{-webkit-user-drag:none}
+    }
+    .token:active{cursor:grabbing}
+    .slot{min-width:72px;min-height:40px;border:2px dashed #d1d5db;border-radius:10px;padding:6px 10px;margin:6px;display:flex;align-items:center;justify-content:center;transition:.12s}
+    .slot.hover{border-color:#6366f1;background:#eef2ff}
+    .slot.filled{padding:0;border-style:none}
+    .area{min-height:70px}
+    .ghost{
+      position:fixed; pointer-events:none; z-index:9999;
+      transform:translate(-50%,-50%); padding:.25rem .5rem;
+      border-radius:.75rem; box-shadow:0 6px 20px rgba(0,0,0,.2);
+      background:#eef2ff; border:1px solid #c7d2fe; font-weight:500;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+  <div class="w-full max-w-xl bg-white rounded-2xl p-6">
+    <h2 class="text-2xl font-bold text-center mb-4">جمله را کامل کن:</h2>
+
+    <div id="sentenceArea"
+         class="area flex flex-wrap items-center justify-center rounded-xl p-4 text-lg text-gray-700 transition-all"></div>
+
+    <div id="resultMsg" class="text-center mt-3 font-bold text-lg"></div>
+
+    <div id="wordBank" class="flex flex-wrap gap-3 justify-center mt-6"></div>
+
+    <div class="flex justify-center mt-6">
+      <button id="resetBtn" class="bg-red-500 text-white px-5 py-2 rounded-lg hover:bg-red-600 transition">شروع دوباره</button>
+    </div>
+  </div>
+
+<script>
+// const wordsSrc = [
+//   "باز کردن","در","یخچال","و","گذاشتن","فیل","داخل","یخچال","و","باز کردن","در","یخچال", "!"
+// ];
+const correctSentence = "! بودن فیل داخل یخچال یا برداشتن فیل"
+const wordsSrc = correctSentence.split(" ")
+
+let bankWords = [];
+let slots = [];
+
+const wordBank = document.getElementById("wordBank");
+const sentenceArea = document.getElementById("sentenceArea");
+const resultMsg = document.getElementById("resultMsg");
+document.getElementById("resetBtn").addEventListener("click", resetGame);
+
+/* one-time DnD listeners for bank container */
+wordBank.addEventListener("dragover", e=>{ e.preventDefault(); if(e.dataTransfer) e.dataTransfer.dropEffect="move"; });
+wordBank.addEventListener("drop", e => {
+  e.preventDefault();
+  const data = safeParse(e.dataTransfer.getData("text/plain"));
+  applyDrop(data, "bank");
+});
+
+function uid(){ return Math.random().toString(36).slice(2,10); }
+function shuffle(a){ return a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]); }
+
+function setSentenceStyle(state){
+  if(state==="ok"){
+    sentenceArea.className="area flex flex-wrap items-center justify-center border-2 border-green-500 bg-green-100 rounded-xl p-4 text-lg text-green-800 font-bold transition";
+    resultMsg.textContent="پاسخ شما صحیح می‌باشد";
+    resultMsg.className="text-center mt-3 font-bold text-lg text-green-600";
+  }else if(state==="bad"){
+    sentenceArea.className="area flex flex-wrap items-center justify-center border-2 border-red-500 bg-red-100 rounded-xl p-4 text-lg text-red-800 font-bold transition";
+    resultMsg.textContent="پاسخ نادرست می‌باشد";
+    resultMsg.className="text-center mt-3 font-bold text-lg text-red-600";
+  }else{
+    sentenceArea.className="area flex flex-wrap items-center justify-center rounded-xl p-4 text-lg text-gray-700 transition";
+    resultMsg.textContent="";
+  }
+}
+
+function allFilled(){ return slots.every(x=>x!==null); }
+function currentSentence(){ return slots.filter(Boolean).map(x=>x.text).join(" "); }
+function validate(){
+  if(!allFilled()){ setSentenceStyle(null); return; }
+  setSentenceStyle(currentSentence()===correctSentence? "ok":"bad");
+}
+
+/* ---------- Rendering ---------- */
+function renderBank(){
+  wordBank.innerHTML="";
+  bankWords.forEach(w=>{
+    const b=document.createElement("div");         // div instead of button
+    b.setAttribute("role","button");
+    b.tabIndex = 0;
+    b.className="token bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium px-4 py-2 rounded-xl shadow transition";
+    b.textContent=w.text;
+    b.draggable=true;
+    b.dataset.origin="bank";
+    b.dataset.id=w.id;
+    b.addEventListener("dragstart", dragStart);    // desktop
+    enablePointerDrag(b);                          // touch
+    wordBank.appendChild(b);
+  });
+}
+
+function renderSlots(){
+  sentenceArea.innerHTML="";
+  slots.forEach((item, idx)=>{
+    const s=document.createElement("div");
+    s.className="slot"+(item?" filled":"");
+    s.dataset.index=idx;
+
+    s.addEventListener("dragover", e=>{ e.preventDefault(); if(e.dataTransfer) e.dataTransfer.dropEffect="move"; s.classList.add("hover"); });
+    s.addEventListener("dragleave", ()=> s.classList.remove("hover"));
+    s.addEventListener("drop", e=>{
+      e.preventDefault();                         // required for Chrome
+      s.classList.remove("hover");
+      const data = safeParse(e.dataTransfer.getData("text/plain"));
+      applyDrop(data, "slot", idx);
+    });
+
+    if(item){
+      const t=document.createElement("span");
+      t.className="token bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-2 rounded-xl shadow-sm";
+      t.textContent=item.text;
+      t.draggable=true;
+      t.dataset.origin="slot";
+      t.dataset.slotIndex=idx;
+      t.dataset.id=item.id;
+      t.addEventListener("dragstart", dragStart); // desktop
+      enablePointerDrag(t);                        // touch
+      s.appendChild(t);
+    }else{
+      const ph=document.createElement("span");
+      ph.className="text-gray-400 text-sm select-none";
+      ph.textContent="—";
+      s.appendChild(ph);
+    }
+    sentenceArea.appendChild(s);
+  });
+  validate();
+}
+
+/* ---------- Desktop DnD ---------- */
+function dragStart(e){
+  const payload={
+    origin: e.target.dataset.origin,
+    id: e.target.dataset.id || null,
+    slotIndex: e.target.dataset.slotIndex? Number(e.target.dataset.slotIndex) : null
+  };
+  e.dataTransfer.setData("text/plain", JSON.stringify(payload));
+  e.dataTransfer.effectAllowed="move";
+}
+
+/* ---------- Unified drop logic (used by mouse & touch) ---------- */
+function applyDrop(data, targetType, targetIdx=null){
+  if(!data) return;
+
+  if(targetType==="slot"){
+    const t = targetIdx;
+    if(data.origin==="bank"){
+      const fromIdx = bankWords.findIndex(w=>w.id===data.id);
+      if(fromIdx===-1) return;
+      const incoming = bankWords.splice(fromIdx,1)[0];
+      const outgoing = slots[t];
+      slots[t]=incoming;
+      if(outgoing) bankWords.push(outgoing);
+    }else if(data.origin==="slot"){
+      const from = Number(data.slotIndex);
+      if(Number.isNaN(from) || from===t) return;
+      const tmp = slots[t];
+      slots[t]=slots[from];
+      slots[from]=tmp;
+    }
+  }else if(targetType==="bank"){
+    if(data.origin!=="slot") return;
+    const si = Number(data.slotIndex);
+    if(Number.isNaN(si)) return;
+    const item = slots[si];
+    if(!item) return;
+    slots[si]=null;
+    bankWords.push(item);
+  }
+  renderBank(); renderSlots();
+}
+
+/* ---------- Touch/Pointer drag ---------- */
+let dragState = null; // {origin,id,slotIndex, ghost}
+
+function enablePointerDrag(el){
+  el.addEventListener("pointerdown", (ev)=>{
+    // Only handle touch; mouse uses native DnD
+    if(ev.pointerType !== "touch") return;
+    ev.preventDefault();
+    el.setPointerCapture(ev.pointerId);
+    const origin = el.dataset.origin;
+    const id = el.dataset.id || null;
+    const slotIndex = el.dataset.slotIndex ? Number(el.dataset.slotIndex) : null;
+
+    const ghost = document.createElement("div");
+    ghost.className="ghost";
+    ghost.textContent = el.textContent;
+    document.body.appendChild(ghost);
+
+    dragState = {origin,id,slotIndex, ghost};
+    moveGhost(ev.clientX, ev.clientY);
+    highlightAt(ev.clientX, ev.clientY, true);
+
+    const move = (e)=>{
+      if(!dragState) return;
+      moveGhost(e.clientX, e.clientY);
+      highlightAt(e.clientX, e.clientY, true);
+    };
+    const up = (e)=>{
+      if(!dragState) return;
+      highlightAt(e.clientX, e.clientY, false);
+      const target = findTargetAt(e.clientX, e.clientY);
+      if(target?.type==="slot"){
+        applyDrop({origin,id,slotIndex}, "slot", target.index);
+      }else if(target?.type==="bank"){
+        applyDrop({origin,id,slotIndex}, "bank");
+      }
+      cleanupPointer(el, move, up);
+    };
+    el.addEventListener("pointermove", move);
+    el.addEventListener("pointerup", up, {once:true});
+    el.addEventListener("pointercancel", up, {once:true});
+  });
+}
+
+function cleanupPointer(el, move, up){
+  try{ el.releasePointerCapture?.(); }catch{}
+  el.removeEventListener("pointermove", move);
+  el.removeEventListener("pointerup", up);
+  el.removeEventListener("pointercancel", up);
+  dragState?.ghost?.remove();
+  dragState = null;
+}
+
+function moveGhost(x,y){
+  if(!dragState) return;
+  dragState.ghost.style.left = x+"px";
+  dragState.ghost.style.top  = y+"px";
+}
+
+function findTargetAt(x,y){
+  const el = document.elementFromPoint(x,y);
+  if(!el) return null;
+  const slot = el.closest?.(".slot");
+  if(slot){
+    const idx = Number(slot.dataset.index);
+    return {type:"slot", index: idx};
+  }
+  if(el.closest?.("#wordBank")) return {type:"bank"};
+  return null;
+}
+
+function highlightAt(x,y, on){
+  const el = document.elementFromPoint(x,y);
+  document.querySelectorAll(".slot.hover").forEach(s=>s.classList.remove("hover"));
+  if(on && el){
+    const slot = el.closest?.(".slot");
+    if(slot) slot.classList.add("hover");
+  }
+}
+
+/* ---------- Helpers ---------- */
+function safeParse(s){ try{return JSON.parse(s)}catch{ return null }}
+
+/* ---------- Init ---------- */
+function resetGame(){
+  const n = wordsSrc.length;
+  bankWords = shuffle(wordsSrc).map(text=>({id:uid(), text}));
+  slots = new Array(n).fill(null);
+  setSentenceStyle(null);
+  renderBank(); renderSlots();
+}
+resetGame();
+</script>
+</body>
+</html>

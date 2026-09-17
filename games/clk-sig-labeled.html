@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <title>سیگنال کلاک — دوره ثابت</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    html, body { height: 100%; }
+    body {
+      margin: 0; background:#fff;
+      display: grid; place-items: center;
+      font-family: Vazirmatn, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    .frame { width: min(95vw, 1200px); }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <div class="frame" id="wrap"></div>
+
+  <script>
+    // ----- settings -----
+    let periodSec = 4.0;               // ثابت
+    let yHigh, yLow, x0, x1, yAxis;    // layout
+    let labelSize = 14, titleSize = 26, infoSize = 20;
+
+    // palette for periods
+    let palette;
+
+    function desiredSize() {
+      const w = Math.min(windowWidth * 0.95, 1200);
+      const h = Math.min(350, Math.max(200, windowHeight * 0.38));
+      return { w: Math.floor(w), h: Math.floor(h) };
+    }
+
+    function setup() {
+      const { w, h } = desiredSize();
+      const c = createCanvas(w, h);
+      c.parent('wrap');
+      textFont('Vazirmatn');
+      strokeCap(SQUARE);
+      palette = [
+        color(0,105,255),   // دوره ۱
+        color(0,170,120),   // دوره ۲
+        color(240,130,0),   // دوره ۳
+        color(180,0,210)    // دوره ۴+
+      ];
+      layout();
+      noLoop(); // ثابت
+    }
+
+    function windowResized() {
+      const { w, h } = desiredSize();
+      resizeCanvas(w, h);
+      layout();
+      redraw();
+    }
+
+    function layout() {
+      const m = 48;
+      x0 = m; x1 = width - m;
+      yHigh = Math.round(height * 0.50);
+      yLow  = Math.round(height * 0.78);
+      yAxis = height - 28;
+
+      const s = constrain(height / 240, 0.8, 1.6);
+      labelSize = Math.round(13 * s);
+      titleSize = Math.round(26 * s);
+      infoSize  = Math.round(18 * s);
+    }
+
+    function draw() {
+      background(255);
+
+      // title
+      noStroke(); fill(0);
+      textAlign(CENTER, BASELINE);
+      textSize(titleSize);
+      text('سیگنال کلاک', width/2, 30);
+
+      // fixed time span: 0 → 12 s
+      const tStart = 0;
+      const tEnd   = 12;
+
+      // rails
+      stroke(180); strokeWeight(1);
+      line(x0, yHigh, x1, yHigh);
+      line(x0, yLow,  x1, yLow);
+
+      // labels
+      noStroke(); fill(0); textSize(labelSize); textAlign(LEFT, BASELINE);
+      text('1',   20, yHigh + 4);
+      text('0',   20, yLow  + 4);
+
+      // draw waveform per period with different colors
+      const nPeriods = Math.floor((tEnd - tStart) / periodSec); // 3 for 0..12 with T=4
+      for (let k = 0; k < nPeriods; k++) {
+        const tA = k * periodSec;
+        const tB = (k + 1) * periodSec;
+        const tMid = tA + periodSec / 2;
+
+        const xA = map(tA,   tStart, tEnd, x0, x1);
+        const xMid = map(tMid, tStart, tEnd, x0, x1);
+        const xB = map(tB,   tStart, tEnd, x0, x1);
+
+        // colored segments
+        stroke(palette[k % palette.length]); strokeWeight(3);
+
+        // rising edge at tA
+        line(xA, yLow, xA, yHigh);
+        // high half
+        line(xA, yHigh, xMid, yHigh);
+        // falling edge at tMid
+        line(xMid, yHigh, xMid, yLow);
+        // low half
+        line(xMid, yLow, xB, yLow);
+      }
+
+      // period arrow between two consecutive rising edges [T, 2T] = [4, 8]
+      let a0 = periodSec;          // 4
+      let a1 = 2*periodSec;        // 8
+      if (a1 > tEnd) { a0 = 0; a1 = periodSec; }
+      const ax0 = map(a0, tStart, tEnd, x0, x1);
+      const ax1 = map(a1, tStart, tEnd, x0, x1);
+      const ay  = yHigh - 18;
+
+      drawDoubleArrow(ax0, ax1, ay); // thin arrow
+      // caption above arrow
+      textAlign(CENTER, BASELINE);
+      textSize(infoSize);
+      const hz = 1/periodSec;
+      text(`طول دوره = ${nf(periodSec,1,2)} ثانیه    فرکانس = ${nf(hz,1,2)} Hz`, (ax0+ax1)/2, ay - 12);
+
+      // x-axis with timestamps
+      drawTimeAxis(tStart, tEnd);
+    }
+
+    function drawDoubleArrow(xa, xb, y) {
+      stroke(0); strokeWeight(1);
+      line(xa, y, xb, y);
+      const ah = 6;
+      line(xa, y, xa + ah, y - ah/2);
+      line(xa, y, xa + ah, y + ah/2);
+      line(xb, y, xb - ah, y - ah/2);
+      line(xb, y, xb - ah, y + ah/2);
+    }
+
+    function drawTimeAxis(tStart, tEnd) {
+      stroke(0); strokeWeight(1);
+      line(x0, yAxis, x1, yAxis);
+
+      const px = x1 - x0;
+      const secPerPx = (tEnd - tStart) / px;
+      const steps = [0.2, 0.5, 1, 2, 5, 10, 20, 30, 60];
+      let step = steps[0];
+      for (let s of steps) { if ((s / secPerPx) >= 50) { step = s; break; } step = s; }
+
+      textSize(12); noStroke(); fill(0); textAlign(CENTER, TOP);
+      const startTick = Math.ceil(tStart / step) * step;
+      for (let t = startTick; t <= tEnd + 1e-6; t += step) {
+        const x = map(t, tStart, tEnd, x0, x1);
+        stroke(0); line(x, yAxis, x, yAxis + 6);
+        noStroke(); text(formatTime(t), x, yAxis + 8);
+      }
+      noStroke(); textAlign(RIGHT, TOP);
+      text(formatTime(0), x0 - 4, yAxis + 8);
+    }
+
+    function formatTime(t) {
+      const isInt = Math.abs(t - Math.round(t)) < 1e-6;
+      return (isInt ? Math.round(t) : nf(t, 1, 1));
+    }
+  </script>
+</body>
+</html>

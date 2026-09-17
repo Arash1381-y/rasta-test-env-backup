@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>گِیم: مدار «۱ چسبنده» با OR و بازخورد</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+    <style>
+      @font-face { font-family: Vazir; src: url(https://cdn.fontcdn.ir/Font/Persian/Vazir/Vazir.woff) format("woff"); font-display: swap; }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body { margin: 0; background: #fff; font-family: Vazir, system-ui; display: grid; place-items: center; padding: 16px; }
+
+      .wrap { width: min(900px, 96vw); }
+      .stage { width: 100%; height: min(520px, 70vh); border: 1px solid #eee; border-radius: 12px; overflow: hidden; background: #fff; }
+      #sk { width: 100%; height: 100%; }
+
+      /* controls under the canvas */
+      .controls { display: flex; justify-content: center; margin-top: 14px; }
+
+      /* better button styling */
+      .btn {
+        --btn-bg: #ffffff;
+        --btn-bd: #d0d7de;
+        --btn-tx: #111827;
+        appearance: none;
+        border: 1px solid var(--btn-bd);
+        background: var(--btn-bg);
+        color: var(--btn-tx);
+        padding: 0.55rem 1rem;
+        border-radius: 10px;
+        font-family: inherit;
+        font-size: 0.95rem;
+        line-height: 1;
+        cursor: pointer;
+        box-shadow: 0 1px 1px rgba(0,0,0,.04), 0 2px 8px rgba(0,0,0,.04) inset;
+        transition: transform .06s ease, box-shadow .15s ease, border-color .15s ease;
+      }
+      .btn:hover { border-color: #b6bec7; box-shadow: 0 2px 6px rgba(0,0,0,.08); }
+      .btn:active { transform: translateY(1px); }
+      .btn:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
+
+      /* subtle variant */
+      .btn-secondary {
+        --btn-bg: #f8fafc;
+        --btn-bd: #cbd5e1;
+        --btn-tx: #0f172a;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="stage"><div id="sk"></div></div>
+      <div class="controls">
+        <button id="reset" class="btn btn-secondary">از اول</button>
+      </div>
+    </div>
+
+    <script>
+      // colors aligned with your second sketch
+      const GREEN1 = [46, 204, 113];
+      const RED1   = [242, 80, 58];
+      const COLOR_LABEL = [40, 40, 40];
+      const COLOR_TEXT  = [255, 255, 255];
+
+      let state = { a: 0, q: 0 }; // a=input, q=output (latches to 1)
+
+      function fit(p, parentId, baseW = 900, baseH = 520) {
+        const r = document.getElementById(parentId).getBoundingClientRect();
+        const w = Math.max(10, Math.floor(r.width)), h = Math.max(10, Math.floor(r.height));
+        if (p._renderer) p.resizeCanvas(w, h);
+        const s = Math.min(w / baseW, h / baseH), ox = (w - baseW * s) / 2, oy = (h - baseH * s) / 2;
+        return { s, ox, oy, w, h, baseW, baseH };
+      }
+
+      const sketch = (p) => {
+        const BW = 900, BH = 520;
+        let view = { s: 1, ox: 0, oy: 0 };
+        let hbIn = null; // input hitbox
+        let orGateImg;
+
+        const orGateImgURL = 'OR.png';
+
+        p.preload = () => { orGateImg = p.loadImage(orGateImgURL); };
+
+        p.setup = () => {
+          const r = document.getElementById('sk').getBoundingClientRect();
+          p.createCanvas(r.width || BW, r.height || BH);
+          p.textFont('Vazir');
+          p.textAlign(p.CENTER, p.CENTER);
+          document.getElementById('reset').onclick = () => { state.a = 0; state.q = 0; };
+        };
+
+        p.windowResized = () => { view = fit(p, 'sk', BW, BH); };
+
+        p.draw = () => {
+          view = fit(p, 'sk', BW, BH);
+          p.clear();
+          p.background(255);
+          p.push();
+          p.translate(view.ox, view.oy);
+          p.scale(view.s);
+
+          // latch behavior
+          state.q = state.q || state.a;
+
+          // layout
+          const nodeR = 7;
+          const midY = BH / 2;
+          const gate = { w: 160, h: 120, x: BW / 2 - 80, y: midY - 60 };
+          const gateInputTop = { x: gate.x + 40, y: gate.y + gate.h * 0.3 };
+          const gateInputBot = { x: gate.x + 40, y: gate.y + gate.h * 0.7 };
+          const gateOutput   = { x: gate.x + gate.w - 38, y: gate.y + gate.h / 2 };
+
+          const inputPadding = 150;
+          const inputBox = { w: 42, h: 42, x: inputPadding, y: gateInputBot.y };
+
+          const outputPadding = 150;
+          const outputBox = { w: 44, h: 44, x: BW - outputPadding, y: gateOutput.y };
+
+          const feedbackLoopY = gate.y - 30;
+          const feedbackCorner1 = { x: outputBox.x - 70, y: gateOutput.y };
+          const feedbackCorner2 = { x: outputBox.x - 70, y: feedbackLoopY };
+          const feedbackCorner3 = { x: inputBox.x + 60, y: feedbackLoopY };
+          const feedbackCorner4 = { x: inputBox.x + 60, y: gateInputTop.y };
+
+          p.image(orGateImg, gate.x, gate.y, gate.w, gate.h);
+          p.noStroke();
+          p.fill(...(state.a ? GREEN1 : RED1));
+          p.rect(inputBox.x, inputBox.y - inputBox.h / 2, inputBox.w, inputBox.h, 10);
+          p.fill(...COLOR_TEXT);
+          p.textSize(18);
+          p.text(state.a, inputBox.x + inputBox.w / 2, inputBox.y + 1);
+          const hbIn = { x: inputBox.x, y: inputBox.y - inputBox.h / 2, w: inputBox.w, h: inputBox.h };
+          p.fill(...COLOR_LABEL);
+          p.textSize(20);
+          p.text('ورودی', inputBox.x + inputBox.w / 2, inputBox.y - inputBox.h / 2 - 16);
+
+          // wires thickness
+          p.strokeWeight(5.2);
+
+          // Input wire color follows input state
+          p.stroke(...(state.a ? GREEN1 : RED1));
+          p.line(inputBox.x + inputBox.w, inputBox.y, gateInputBot.x + 7.5, gateInputBot.y);
+
+          // OR gate image
+
+          // Feedback and output wires color follow q
+          const qCol = state.q ? GREEN1 : RED1;
+          p.stroke(...qCol);
+          p.line(gateOutput.x, gateOutput.y, feedbackCorner1.x, feedbackCorner1.y);
+          p.line(feedbackCorner1.x, feedbackCorner1.y, feedbackCorner2.x, feedbackCorner2.y);
+          p.line(feedbackCorner2.x, feedbackCorner2.y, feedbackCorner3.x, feedbackCorner3.y);
+          p.line(feedbackCorner3.x, feedbackCorner3.y, feedbackCorner4.x, feedbackCorner4.y);
+          p.line(feedbackCorner4.x, feedbackCorner4.y, gateInputTop.x + 7.5, gateInputTop.y);
+
+          // nodes on feedback path
+          p.fill(...qCol);
+          p.noStroke();
+          [ {x:gateOutput.x,y:gateOutput.y}, feedbackCorner1, feedbackCorner2, feedbackCorner3, feedbackCorner4 ].forEach(pt => {
+            p.circle(pt.x, pt.y, nodeR * 2);
+          });
+
+          // Output wire to box
+          p.stroke(...qCol);
+          p.line(feedbackCorner1.x, feedbackCorner1.y, outputBox.x, outputBox.y);
+
+          // Output label
+          p.noStroke();
+          p.fill(0);
+          p.textSize(20);
+          p.text('خروجی', outputBox.x + outputBox.w / 2, outputBox.y - 36 - 2 );
+
+          // OUTPUT box: white fill, colored border only
+          p.noFill();
+          p.stroke(...qCol);
+          p.strokeWeight(6);
+          p.rect(outputBox.x, outputBox.y - outputBox.h / 2, outputBox.w, outputBox.h, 6);
+
+          // OUTPUT value text inside
+          p.noStroke();
+          p.fill(0);
+          p.textSize(18);
+          p.text(state.q ? '1' : '0', outputBox.x + outputBox.w / 2, outputBox.y);
+
+          p.pop();
+
+          // click handling
+          function hit(mx, my, hb) {
+            return hb && mx > hb.x && mx < hb.x + hb.w && my > hb.y && my < hb.y + hb.h;
+          }
+          p.mousePressed = () => {
+            const mx = (p.mouseX - view.ox) / view.s, my = (p.mouseY - view.oy) / view.s;
+            if (hit(mx, my, hbIn)) state.a = 1 - state.a;
+          };
+          p.touchStarted = () => { p.mousePressed(); return false; };
+        };
+      };
+
+      new p5(sketch, 'sk');
+    </script>
+  </body>
+</html>
