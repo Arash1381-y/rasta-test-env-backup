@@ -1,4 +1,5 @@
 import React from 'react';
+import useBaseUrl from '@docusaurus/useBaseUrl';
 import {useWindowSize} from '@docusaurus/theme-common';
 
 export default function ResponsiveIframe({
@@ -12,9 +13,11 @@ export default function ResponsiveIframe({
 }) {
   const {width: w} = useWindowSize();
   const h = w && w <= breakpoint ? heightSmall : heightLarge;
+  const resolvedSrc = useBaseUrl(src);
+
   return (
     <iframe
-      src={src}
+      src={resolvedSrc}
       width={width}
       height={h}
       style={{borderRadius: '8px', ...style}}
